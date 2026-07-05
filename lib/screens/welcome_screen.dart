@@ -1,7 +1,10 @@
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../models/survey_criteria.dart';
 import 'chat_onboarding_screen.dart';
+import 'results_screen.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -16,9 +19,64 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   final List<_Star> _stars = [];
   final double _parallaxWidth = 800.0; // The virtual width where the parallax pattern repeats
 
+  bool _hasSavedPreferences = false;
+  String _savedOfficeName = '';
+  String? _savedBudget;
+  String? _savedOfficeArea;
+  String? _savedOfficeLocation;
+  double? _savedOfficeLat;
+  double? _savedOfficeLng;
+  String? _savedGender;
+  bool? _savedFoodIncluded;
+  String? _savedDistancePref;
+  bool? _savedAcRequired;
+
+  Future<void> _checkSavedPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    final officeName = prefs.getString('saved_office_location');
+    if (officeName != null && officeName.isNotEmpty) {
+      setState(() {
+        _hasSavedPreferences = true;
+        _savedOfficeName = officeName.split(',').first.trim();
+        _savedBudget = prefs.getString('saved_budget');
+        _savedOfficeArea = prefs.getString('saved_office_area');
+        _savedOfficeLocation = prefs.getString('saved_office_location');
+        _savedOfficeLat = prefs.getDouble('saved_office_lat');
+        _savedOfficeLng = prefs.getDouble('saved_office_lng');
+        _savedGender = prefs.getString('saved_gender');
+        _savedFoodIncluded = prefs.getBool('saved_food_included');
+        _savedDistancePref = prefs.getString('saved_distance_pref');
+        _savedAcRequired = prefs.getBool('saved_ac_required');
+      });
+    }
+  }
+
+  void _resumeSavedSearch() {
+    final criteria = SurveyCriteria(
+      budget: _savedBudget ?? 'All',
+      officeArea: _savedOfficeArea ?? '',
+      officeLocation: _savedOfficeLocation ?? '',
+      officeLat: _savedOfficeLat ?? 12.9352,
+      officeLng: _savedOfficeLng ?? 77.6245,
+      lifestyle: 'Quiet Comfort',
+      commute: 'Any',
+      gender: _savedGender ?? 'Co-living',
+      foodIncluded: _savedFoodIncluded ?? true,
+      distancePref: _savedDistancePref ?? 'Any (<10km)',
+      acRequired: _savedAcRequired ?? true,
+    );
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ResultsScreen(criteria: criteria),
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
+    _checkSavedPreferences();
     // 12-second infinite loop for smooth continuous parallax scrolling
     _animationController = AnimationController(
       vsync: this,
@@ -289,6 +347,69 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                                   height: 1.5,
                                 ),
                               ),
+                              if (_hasSavedPreferences) ...[
+                                const SizedBox(height: 24),
+                                Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF6F5CFF).withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(color: const Color(0xFF6F5CFF).withValues(alpha: 0.35)),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: const [
+                                          Icon(Icons.history_rounded, color: Color(0xFF8C88FF), size: 18),
+                                          SizedBox(width: 8),
+                                          Text(
+                                            'Welcome Back!',
+                                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Resume searching PGs near\n"$_savedOfficeName"?',
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+                                      ),
+                                      const SizedBox(height: 14),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          ElevatedButton(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: const Color(0xFF6F5CFF),
+                                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                              minimumSize: Size.zero,
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                            ),
+                                            onPressed: _resumeSavedSearch,
+                                            child: const Text('Resume Search', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
+                                          ),
+                                          const SizedBox(width: 10),
+                                          OutlinedButton(
+                                            style: OutlinedButton.styleFrom(
+                                              side: const BorderSide(color: Colors.white24),
+                                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                              minimumSize: Size.zero,
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                            ),
+                                            onPressed: () {
+                                              setState(() {
+                                                _hasSavedPreferences = false;
+                                              });
+                                            },
+                                            child: const Text('New Search', style: TextStyle(fontSize: 11, color: Colors.white70)),
+                                          ),
+                                        ],
+                                      )
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ),

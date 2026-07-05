@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/mock_pg_listings.dart';
 import '../models/pg_listing.dart';
@@ -38,19 +39,73 @@ class _ResultsScreenState extends State<ResultsScreen> {
   List<PGListingWithScore> _exactMatches = [];
   List<PGListingWithScore> _fallbackMatches = [];
   final List<PGListingWithScore> _selectedComparePgs = [];
+  List<String> _favoritePgNames = [];
+
+  // Refined Interactive Filters State
+  late String _filterBudget;
+  late String _filterDistance;
+  late bool _filterAc;
+  late bool _filterFood;
+  late String _filterGender;
+  String _sortBy = 'Best Match';
+  bool _showFavoritesOnly = false;
 
   @override
   void initState() {
     super.initState();
+    _filterBudget = widget.criteria.budget;
+    _filterDistance = widget.criteria.distancePref;
+    _filterAc = widget.criteria.acRequired;
+    _filterFood = widget.criteria.foodIncluded;
+    _filterGender = widget.criteria.gender;
     _computeData();
+    _loadFavorites();
   }
 
   @override
   void didUpdateWidget(ResultsScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.criteria != widget.criteria) {
+      _filterBudget = widget.criteria.budget;
+      _filterDistance = widget.criteria.distancePref;
+      _filterAc = widget.criteria.acRequired;
+      _filterFood = widget.criteria.foodIncluded;
+      _filterGender = widget.criteria.gender;
       _computeData();
     }
+  }
+
+  Future<void> _loadFavorites() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _favoritePgNames = prefs.getStringList('favorite_pg_names') ?? [];
+    });
+  }
+
+  Future<void> _toggleFavorite(String name) async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      if (_favoritePgNames.contains(name)) {
+        _favoritePgNames.remove(name);
+      } else {
+        _favoritePgNames.add(name);
+      }
+    });
+    await prefs.setStringList('favorite_pg_names', _favoritePgNames);
+    _computeData();
+  }
+
+  void _resetFilters() {
+    setState(() {
+      _filterBudget = widget.criteria.budget;
+      _filterDistance = widget.criteria.distancePref;
+      _filterAc = widget.criteria.acRequired;
+      _filterFood = widget.criteria.foodIncluded;
+      _filterGender = widget.criteria.gender;
+      _sortBy = 'Best Match';
+      _showFavoritesOnly = false;
+    });
+    _computeData();
   }
 
   int _parseBudgetMax(String budget) {
@@ -76,10 +131,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
   }
 
   void _computeData() {
-    final maxRent = _parseBudgetMax(widget.criteria.budget);
-    final distanceLimit = _parseDistanceLimit(widget.criteria.distancePref);
+    final maxRent = _parseBudgetMax(_filterBudget);
+    final distanceLimit = _parseDistanceLimit(_filterDistance);
 
-    // 1. Fetch relevant stays (fallback dynamically if no local stays exist)
     List<PGListing> sourceListings = [];
     bool hasLocalHardcoded = false;
     for (var pg in allPgListings) {
@@ -104,22 +158,23 @@ class _ResultsScreenState extends State<ResultsScreen> {
     List<PGListingWithScore> exactMatches = [];
     List<PGListingWithScore> fallbacks = [];
 
-    // 2. Score and categorize each stay
     for (var pg in sourceListings) {
+      if (_showFavoritesOnly && !_favoritePgNames.contains(pg.name)) {
+        continue;
+      }
+
       final distance = GeoUtils.calculateDistanceKm(
           widget.criteria.officeLat, widget.criteria.officeLng, pg.lat, pg.lng);
       final commuteTime = GeoUtils.calculateCommuteMinutes(distance);
 
-      // Verify strict match parameters
       final isBudgetMatch = pg.rent <= maxRent;
       final isDistanceMatch = distance <= distanceLimit;
-      final isGenderMatch = _genderMatches(pg.gender, widget.criteria.gender);
-      final isFoodMatch = !widget.criteria.foodIncluded || pg.foodIncluded;
-      final isAcMatch = !widget.criteria.acRequired || pg.hasAc;
+      final isGenderMatch = _genderMatches(pg.gender, _filterGender);
+      final isFoodMatch = !_filterFood || pg.foodIncluded;
+      final isAcMatch = !_filterAc || pg.hasAc;
 
       final isStrictMatch = isBudgetMatch && isDistanceMatch && isGenderMatch && isFoodMatch && isAcMatch;
 
-      // 3. Compute dynamic checklist (matches / mismatches)
       List<String> matches = [];
       List<String> mismatches = [];
 
@@ -138,18 +193,18 @@ class _ResultsScreenState extends State<ResultsScreen> {
       if (isGenderMatch) {
         matches.add('${pg.gender} accommodation');
       } else {
-        mismatches.add('Is ${pg.gender} instead of ${widget.criteria.gender.replaceAll(' Only', '')}');
+        mismatches.add('Is ${pg.gender} instead of ${_filterGender.replaceAll(' Only', '')}');
       }
 
       if (pg.foodIncluded) {
         matches.add('Food Included');
-      } else if (widget.criteria.foodIncluded) {
+      } else if (_filterFood) {
         mismatches.add('Food not included');
       }
 
       if (pg.hasAc) {
-        matches.add('AC Room');
-      } else if (widget.criteria.acRequired) {
+        matches.add('AC available');
+      } else if (_filterAc) {
         mismatches.add('Non-AC room');
       }
 
@@ -158,15 +213,28 @@ class _ResultsScreenState extends State<ResultsScreen> {
         matches.add('Has $amenity');
       }
 
-      // 4. Calculate Match Score (0 - 100)
-      double distScore = (1.0 - (distance / 12.0).clamp(0.0, 1.0)) * 20;
-      double budgetScore = maxRent == 999999 ? 20.0 : (1.0 - (pg.rent / maxRent).clamp(0.0, 1.0)) * 20;
+      // 20. End-to-end scoring model weights:
+      // Preference match: 50% (Gender 20%, Food 15%, AC 15%)
       double genderScore = isGenderMatch ? 20.0 : 0.0;
-      double foodScore = (pg.foodIncluded || !widget.criteria.foodIncluded) ? 15.0 : 5.0;
-      double acScore = (pg.hasAc || !widget.criteria.acRequired) ? 15.0 : 5.0;
-      double ratingScore = (pg.rating / 5.0) * 10.0;
+      double foodScore = (pg.foodIncluded || !_filterFood) ? 15.0 : 5.0;
+      double acScore = (pg.hasAc || !_filterAc) ? 15.0 : 5.0;
 
-      int totalScore = (distScore + budgetScore + genderScore + foodScore + acScore + ratingScore).clamp(0, 100).round();
+      // Budget match: 20%
+      double budgetScore = 20.0;
+      if (_filterBudget != 'All') {
+        budgetScore = (1.0 - (pg.rent / maxRent).clamp(0.0, 1.0)) * 20.0;
+      }
+
+      // Distance: 15%
+      double distScore = (1.0 - (distance / distanceLimit).clamp(0.0, 1.0)) * 15.0;
+
+      // Amenities: 10%
+      double amenitiesScore = (pg.amenities.length / 5.0).clamp(0.0, 1.0) * 10.0;
+
+      // Rating: 5%
+      double ratingScore = (pg.rating / 5.0) * 5.0;
+
+      int totalScore = (genderScore + foodScore + acScore + budgetScore + distScore + amenitiesScore + ratingScore).round();
 
       final rankedItem = PGListingWithScore(
         pg: pg,
@@ -184,17 +252,255 @@ class _ResultsScreenState extends State<ResultsScreen> {
       }
     }
 
-    // Sort exact matches by score descending
-    exactMatches.sort((a, b) => b.score.compareTo(a.score));
+    // Apply Sorting (Point 7)
+    void applySortRules(List<PGListingWithScore> list) {
+      if (_sortBy == 'Best Match') {
+        list.sort((a, b) => b.score.compareTo(a.score));
+      } else if (_sortBy == 'Lowest Rent') {
+        list.sort((a, b) => a.pg.rent.compareTo(b.pg.rent));
+      } else if (_sortBy == 'Closest') {
+        list.sort((a, b) => a.distance.compareTo(b.distance));
+      } else if (_sortBy == 'Highest Rated') {
+        list.sort((a, b) => b.pg.rating.compareTo(a.pg.rating));
+      }
+    }
 
-    // Sort fallbacks by distance (since proximity is key for fallback suggestions)
-    fallbacks.sort((a, b) => a.distance.compareTo(b.distance));
+    applySortRules(exactMatches);
+    applySortRules(fallbacks);
 
     setState(() {
       _exactMatches = exactMatches;
       _fallbackMatches = fallbacks;
-      _selectedComparePgs.clear(); // Clear selections on compute
     });
+  }
+
+  String _getConfidenceLabel(int score) {
+    if (score >= 90) return 'Excellent Match';
+    if (score >= 75) return 'Good Match';
+    return 'Fair Match';
+  }
+
+  Color _getConfidenceColor(int score) {
+    if (score >= 90) return const Color(0xFF4ADE80);
+    if (score >= 75) return const Color(0xFF8C88FF);
+    return const Color(0xFFF87171);
+  }
+
+  Widget _buildHubTip() {
+    final loc = widget.criteria.officeLocation.toLowerCase();
+    String? hub;
+    String? recommendations;
+    if (loc.contains('electronic city')) {
+      hub = 'Electronic City';
+      recommendations = 'Phase 1 and Neeladri Road';
+    } else if (loc.contains('whitefield')) {
+      hub = 'Whitefield';
+      recommendations = 'Hope Farm and ITPL Main Road';
+    } else if (loc.contains('koramangala')) {
+      hub = 'Koramangala';
+      recommendations = '4th Block and 7th Block';
+    } else if (loc.contains('indiranagar')) {
+      hub = 'Indiranagar';
+      recommendations = 'HAL 2nd Stage and Domlur';
+    }
+    if (hub == null) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF6F5CFF).withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF6F5CFF).withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.lightbulb_outline_rounded, color: Color(0xFF8C88FF), size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Hub Tip: Since your office is in $hub, popular PG clusters nearby include $recommendations.',
+              style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRefineFilters() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF121630),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFF222852)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: const [
+                  Icon(Icons.tune_rounded, color: Color(0xFF8C88FF), size: 18),
+                  SizedBox(width: 8),
+                  Text('Refine Filters', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                ],
+              ),
+              TextButton(
+                onPressed: _resetFilters,
+                child: const Text('Reset', style: TextStyle(color: Color(0xFF8C88FF), fontSize: 12)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildDropdownFilter(
+            'Max Budget',
+            _filterBudget,
+            ['All', '₹5k - ₹10k', '₹10k - ₹15k', '₹15k - ₹25k'],
+            (val) => setState(() { _filterBudget = val!; _computeData(); }),
+          ),
+          const SizedBox(height: 8),
+          _buildDropdownFilter(
+            'Max Distance',
+            _filterDistance,
+            ['Walking distance (<1km)', 'Short drive (<4km)', 'Any (<10km)'],
+            (val) => setState(() { _filterDistance = val!; _computeData(); }),
+          ),
+          const SizedBox(height: 8),
+          _buildDropdownFilter(
+            'Gender Stay',
+            _filterGender,
+            ['Male Only', 'Female Only', 'Co-living'],
+            (val) => setState(() { _filterGender = val!; _computeData(); }),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _buildSwitchFilter('AC Room', _filterAc, (val) => setState(() { _filterAc = val; _computeData(); })),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildSwitchFilter('Food Incl.', _filterFood, (val) => setState(() { _filterFood = val; _computeData(); })),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Sorting Dropdown (Point 7)
+          Row(
+            children: [
+              const Text('Sort by:', style: TextStyle(color: Colors.white70, fontSize: 13)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF090B19),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF222852)),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _sortBy,
+                      dropdownColor: const Color(0xFF11142B),
+                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                      onChanged: (val) {
+                        setState(() {
+                          _sortBy = val!;
+                          _computeData();
+                        });
+                      },
+                      items: ['Best Match', 'Lowest Rent', 'Closest', 'Highest Rated']
+                          .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                          .toList(),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // Favorites Toggle Chip (Point 9)
+          FilterChip(
+            label: Text(
+              '❤️ Favorites Only (${_favoritePgNames.length})',
+              style: TextStyle(
+                color: _showFavoritesOnly ? Colors.white : Colors.white70,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            selected: _showFavoritesOnly,
+            checkmarkColor: Colors.white,
+            selectedColor: const Color(0xFFEF4444).withValues(alpha: 0.8),
+            backgroundColor: const Color(0xFF090B19),
+            side: BorderSide(color: _showFavoritesOnly ? const Color(0xFFEF4444) : const Color(0xFF222852)),
+            onSelected: (selected) {
+              setState(() {
+                _showFavoritesOnly = selected;
+                _computeData();
+              });
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDropdownFilter(String label, String value, List<String> items, ValueChanged<String?> onChanged) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 90,
+          child: Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+        ),
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF090B19),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFF222852)),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: value,
+                dropdownColor: const Color(0xFF11142B),
+                style: const TextStyle(color: Colors.white, fontSize: 12),
+                isExpanded: true,
+                onChanged: onChanged,
+                items: items.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSwitchFilter(String label, bool value, ValueChanged<bool> onChanged) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      decoration: BoxDecoration(
+        color: const Color(0xFF090B19),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFF222852)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+          Switch(
+            value: value,
+            activeThumbColor: const Color(0xFF6F5CFF),
+            activeTrackColor: const Color(0xFF6F5CFF).withValues(alpha: 0.4),
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -217,7 +523,6 @@ class _ResultsScreenState extends State<ResultsScreen> {
           onPressed: () => Navigator.of(context).pop(true),
         ),
       ),
-      // Floating Compare Selected Button
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: _selectedComparePgs.isEmpty
           ? null
@@ -285,9 +590,18 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     ],
                   ),
                 ),
+                
+                // IT Hub tips nearby suggestions (Point 19)
+                _buildHubTip(),
+
+                const SizedBox(height: 20),
+                
+                // Inline Refined filters (Point 12)
+                _buildRefineFilters(),
+
                 const SizedBox(height: 24),
 
-                // Matches Count Banner
+                // Matches Count Banner (Point 6)
                 if (hasMatches) ...[
                   Row(
                     children: [
@@ -305,12 +619,12 @@ class _ResultsScreenState extends State<ResultsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Found ${_exactMatches.length} Matching PGs',
-                              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                              'We found ${_exactMatches.length} PGs matching your preferences.',
+                              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 2),
                             const Text(
-                              'Perfectly matching all your onboarding filters.',
+                              'Showing only the best matches below.',
                               style: TextStyle(color: Colors.white54, fontSize: 12),
                             ),
                           ],
@@ -327,7 +641,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   ),
                   const SizedBox(height: 12),
                   SizedBox(
-                    height: 480,
+                    height: 520,
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       physics: const BouncingScrollPhysics(),
@@ -358,7 +672,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     ),
                   ],
                 ] else ...[
-                  // Fallback state empty banner
+                  // 13. Empty state improvement (matches exactly user copy)
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(18),
@@ -375,14 +689,14 @@ class _ResultsScreenState extends State<ResultsScreen> {
                             Icon(Icons.warning_amber_rounded, color: Color(0xFFF77171), size: 24),
                             SizedBox(width: 10),
                             Text(
-                              'No PGs match all of your preferences.',
+                              'No PGs match all of your selected preferences.',
                               style: TextStyle(color: Color(0xFFF77171), fontSize: 15, fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
                         const SizedBox(height: 8),
                         const Text(
-                          'We relaxed some matching parameters to show you nearby alternatives centered around your office location.',
+                          '😔 We couldn\'t find a PG matching all your preferences. Relaxing criteria to show closest matches:',
                           style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
                         ),
                       ],
@@ -390,15 +704,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Alternative Stays Header
                   const Text(
-                    'Available PGs Near Your Office',
+                    'Closest Matches',
                     style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Alternative suggestions ordered by proximity.',
-                    style: TextStyle(color: Colors.white54, fontSize: 12),
                   ),
                   const SizedBox(height: 14),
 
@@ -412,7 +720,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     },
                   ),
                 ],
-                const SizedBox(height: 80), // extra padding for floating button
+                const SizedBox(height: 80),
               ],
             ),
           ),
@@ -447,6 +755,12 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
   Widget _buildPgCard(BuildContext context, PGListingWithScore item, {required bool isFeatured, bool isAlternative = false}) {
     final bool isSelected = _selectedComparePgs.any((x) => x.pg.name == item.pg.name);
+    final bool isFavorite = _favoritePgNames.contains(item.pg.name);
+
+    // Compute different travel mode times (Point 4)
+    final int walkTime = (item.distance * 12).round().clamp(1, 120);
+    final int bikeTime = (item.distance * 4).round().clamp(1, 40);
+    final int driveTime = (item.distance * 2).round().clamp(1, 20);
 
     return Container(
       width: isFeatured ? 300 : double.infinity,
@@ -472,7 +786,6 @@ class _ResultsScreenState extends State<ResultsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Image / Badge Section
           Stack(
             children: [
               ClipRRect(
@@ -489,82 +802,125 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   ),
                 ),
               ),
-              // Match Score Overlay Badge
+              // Match Score Overlay Badge (Point 2)
               Positioned(
                 top: 12,
                 left: 12,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: isAlternative
-                          ? [const Color(0xFFEC4899), const Color(0xFFD946EF)]
-                          : [const Color(0xFF6F5CFF), const Color(0xFF5038FF)],
-                    ),
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: [
-                      BoxShadow(
-                        color: (isAlternative ? const Color(0xFFEC4899) : const Color(0xFF6F5CFF)).withValues(alpha: 0.4),
-                        blurRadius: 8,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: isAlternative
+                              ? [const Color(0xFFEC4899), const Color(0xFFD946EF)]
+                              : [const Color(0xFF6F5CFF), const Color(0xFF5038FF)],
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: (isAlternative ? const Color(0xFFEC4899) : const Color(0xFF6F5CFF)).withValues(alpha: 0.4),
+                            blurRadius: 8,
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  child: Text(
-                    isAlternative ? 'Alternative Stay' : '${item.score}% Match',
-                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                  ),
+                      child: Text(
+                        '${item.score}% Match',
+                        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    // Confidence indicator (Point 14)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.85),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        _getConfidenceLabel(item.score),
+                        style: TextStyle(
+                          color: _getConfidenceColor(item.score),
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    )
+                  ],
                 ),
               ),
-              // Select for Comparison Checkbox Overlay
+              // Select for Comparison Checkbox & Favorites Heart (Point 9)
               Positioned(
                 top: 12,
                 right: 12,
-                child: GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      if (isSelected) {
-                        _selectedComparePgs.removeWhere((x) => x.pg.name == item.pg.name);
-                      } else {
-                        _selectedComparePgs.add(item);
-                      }
-                    });
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0F1225).withValues(alpha: 0.85),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isSelected ? const Color(0xFF6F5CFF) : Colors.white24,
-                        width: 1.5,
+                child: Row(
+                  children: [
+                    // Favorite Toggle
+                    GestureDetector(
+                      onTap: () => _toggleFavorite(item.pg.name),
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0F1225).withValues(alpha: 0.85),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          isFavorite ? Icons.favorite : Icons.favorite_border,
+                          color: isFavorite ? const Color(0xFFEF4444) : Colors.white70,
+                          size: 16,
+                        ),
                       ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          isSelected ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
-                          color: isSelected ? const Color(0xFF8C88FF) : Colors.white70,
-                          size: 14,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          isSelected ? 'Selected' : 'Compare',
-                          style: TextStyle(
-                            color: isSelected ? Colors.white : Colors.white70,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
+                    const SizedBox(width: 8),
+                    // Check to Compare
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          if (isSelected) {
+                            _selectedComparePgs.removeWhere((x) => x.pg.name == item.pg.name);
+                          } else {
+                            _selectedComparePgs.add(item);
+                          }
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0F1225).withValues(alpha: 0.85),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSelected ? const Color(0xFF6F5CFF) : Colors.white24,
+                            width: 1.5,
                           ),
                         ),
-                      ],
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isSelected ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
+                              color: isSelected ? const Color(0xFF8C88FF) : Colors.white70,
+                              size: 14,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              isSelected ? 'Selected' : 'Compare',
+                              style: TextStyle(
+                                color: isSelected ? Colors.white : Colors.white70,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             ],
           ),
 
-          // Main details
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -602,7 +958,6 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 ),
                 const SizedBox(height: 12),
 
-                // Pricing, Commute and Proximity
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -610,27 +965,46 @@ class _ResultsScreenState extends State<ResultsScreen> {
                       '₹${item.pg.rent}/mo',
                       style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
                     ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          '${item.distance.toStringAsFixed(1)} km away',
-                          style: const TextStyle(color: Colors.white70, fontSize: 11),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '~${item.commuteMinutes} min commute',
-                          style: const TextStyle(color: Color(0xFF8C88FF), fontSize: 11, fontWeight: FontWeight.bold),
-                        ),
-                      ],
+                    Text(
+                      '${item.distance.toStringAsFixed(1)} km from office',
+                      style: const TextStyle(color: Colors.white70, fontSize: 11),
                     ),
                   ],
                 ),
+                const SizedBox(height: 12),
+
+                // Commute Travel Times Row (Point 4)
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0F1225),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF1B2048)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _buildTravelTimeCol(Icons.directions_walk_rounded, '${walkTime}m walk'),
+                      _buildTravelTimeCol(Icons.directions_bike_rounded, '${bikeTime}m bike'),
+                      _buildTravelTimeCol(Icons.directions_car_rounded, '${driveTime}m drive'),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 14),
 
-                // WHY THIS PG / EXPLAINABILITY LIST
+                // Nearby essentials quick display (Point 11)
+                Row(
+                  children: const [
+                    Text('🚇 Metro · 🚌 Bus · 🍴 Food · 🏥 Clinic', style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold)),
+                    Spacer(),
+                    Text('Nearby', style: TextStyle(color: Color(0xFF8C88FF), fontSize: 10, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                // Dynamic Why recommended matches checklist (Points 1 & 3)
                 const Text(
-                  'Why this PG?',
+                  'Why we recommended this:',
                   style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 6),
@@ -651,7 +1025,6 @@ class _ResultsScreenState extends State<ResultsScreen> {
                         ],
                       ),
                     )),
-                // Show mismatch criteria clearly
                 if (item.mismatches.isNotEmpty) ...[
                   const SizedBox(height: 6),
                   ...item.mismatches.take(2).map((mismatch) => Padding(
@@ -674,27 +1047,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 ],
                 const SizedBox(height: 16),
 
-                // Amenities
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: item.pg.amenities.take(3).map((amenity) {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1B2048),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        amenity,
-                        style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w500),
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 18),
-
-                // Primary Details trigger
+                // View Details Button
                 ElevatedButton(
                   onPressed: () {
                     Navigator.of(context).push(
@@ -721,6 +1074,16 @@ class _ResultsScreenState extends State<ResultsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildTravelTimeCol(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, color: const Color(0xFF8C88FF), size: 14),
+        const SizedBox(width: 4),
+        Text(text, style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)),
+      ],
     );
   }
 }

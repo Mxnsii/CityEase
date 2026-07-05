@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_place/google_place.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/area_suggestions.dart';
 import '../models/survey_criteria.dart';
@@ -293,6 +294,19 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
     _handleReply(answer);
   }
 
+  Future<void> _savePreferencesToStorage() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('saved_budget', _budget);
+    await prefs.setString('saved_office_area', _officeArea);
+    await prefs.setString('saved_office_location', _officeLocation);
+    await prefs.setDouble('saved_office_lat', _officeLat);
+    await prefs.setDouble('saved_office_lng', _officeLng);
+    await prefs.setString('saved_gender', _gender);
+    await prefs.setBool('saved_food_included', _foodIncluded);
+    await prefs.setString('saved_distance_pref', _distancePref);
+    await prefs.setBool('saved_ac_required', _acRequired);
+  }
+
   Future<void> _finishConversation() async {
     final criteria = SurveyCriteria(
       budget: _budget,
@@ -307,7 +321,9 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
       distancePref: _distancePref,
       acRequired: _acRequired,
     );
-    final shouldReset = await Navigator.of(context).push<bool>(
+    final navigator = Navigator.of(context);
+    await _savePreferencesToStorage();
+    final shouldReset = await navigator.push<bool>(
       MaterialPageRoute(
         builder: (_) => ResultsScreen(criteria: criteria),
       ),

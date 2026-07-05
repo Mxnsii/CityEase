@@ -345,12 +345,31 @@ class _PgDetailsScreenState extends State<PgDetailsScreen> {
                     ),
                     const SizedBox(height: 24),
                     
+                    const Text('Nearby Essentials', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 12),
+                    GridView.count(
+                      crossAxisCount: 2,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: 2.8,
+                      children: [
+                        _buildEssentialGridCard('Metro Station', '🚇 450m away', const Color(0xFF3B82F6)),
+                        _buildEssentialGridCard('Bus Stop', '🚌 200m away', const Color(0xFF10B981)),
+                        _buildEssentialGridCard('Restaurants', '🍴 120m away', const Color(0xFFF59E0B)),
+                        _buildEssentialGridCard('Hospital', '🏥 1.2 km away', const Color(0xFFEF4444)),
+                        _buildEssentialGridCard('Grocery Store', '🛒 80m away', const Color(0xFFEC4899)),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    
                     const Text('Nearby Highlights', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 12),
                     if (_isLoadingAmenities)
-                      const Text('Loading nearby amenities...', style: TextStyle(color: Colors.white54))
+                      const Text('Loading nearby highlights...', style: TextStyle(color: Colors.white54))
                     else if (_amenities.isEmpty)
-                      const Text('No notable amenities found nearby.', style: TextStyle(color: Colors.white54))
+                      const Text('No notable highlights found nearby.', style: TextStyle(color: Colors.white54))
                     else
                       Wrap(
                         spacing: 8,
@@ -362,7 +381,7 @@ class _PgDetailsScreenState extends State<PgDetailsScreen> {
                               color: const Color(0xFF191F45),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Text(amenity.name ?? 'Amenity', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                            child: Text(amenity.name ?? 'Highlight', style: const TextStyle(color: Colors.white70, fontSize: 12)),
                           );
                         }).toList(),
                       ),
@@ -410,6 +429,26 @@ class _PgDetailsScreenState extends State<PgDetailsScreen> {
             Text(value, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildEssentialGridCard(String label, String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF11162D),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.white60, fontSize: 11)),
+          const SizedBox(height: 2),
+          Text(value, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+        ],
       ),
     );
   }

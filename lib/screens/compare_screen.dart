@@ -129,6 +129,7 @@ class CompareScreen extends StatelessWidget {
           _buildCellLabel('Gender Target', height: 60),
           _buildCellLabel('Food Included', height: 60),
           _buildCellLabel('AC / Non-AC', height: 60),
+          _buildCellLabel('🚽 Attached Washroom', height: 50),
           _buildCellLabel('📶 Wi-Fi', height: 50),
           _buildCellLabel('🧺 Laundry', height: 50),
           _buildCellLabel('🏋️ Gym', height: 50),
@@ -171,6 +172,7 @@ class CompareScreen extends StatelessWidget {
     final hasGym = item.pg.amenities.any((a) => a.toLowerCase().contains('gym'));
     final hasParking = item.pg.amenities.any((a) => a.toLowerCase().contains('parking'));
     final hasSecurity = item.pg.amenities.any((a) => a.toLowerCase().contains('security'));
+    final hasWashroom = item.pg.amenities.any((a) => a.toLowerCase().contains('bathroom') || a.toLowerCase().contains('washroom'));
 
     final otherAmenities = item.pg.amenities
         .where((a) =>
@@ -179,7 +181,9 @@ class CompareScreen extends StatelessWidget {
             !a.toLowerCase().contains('washing') &&
             !a.toLowerCase().contains('gym') &&
             !a.toLowerCase().contains('parking') &&
-            !a.toLowerCase().contains('security'))
+            !a.toLowerCase().contains('security') &&
+            !a.toLowerCase().contains('bathroom') &&
+            !a.toLowerCase().contains('washroom'))
         .join(', ');
 
     return Container(
@@ -277,6 +281,9 @@ class CompareScreen extends StatelessWidget {
             item.pg.hasAc ? 'AC Room' : 'Non-AC',
             height: 60,
           ),
+
+          // Attached Washroom Check
+          _buildIconCell(hasWashroom, height: 50),
 
           // Wi-Fi Check
           _buildIconCell(hasWifi, height: 50),
