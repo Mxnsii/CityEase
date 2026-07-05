@@ -12,6 +12,9 @@ class PGListing {
   final double lng;
   final String imageUrl;
   final List<String> amenities;
+  final String gender;          // 'Male', 'Female', 'Unisex'
+  final bool foodIncluded;
+  final bool hasAc;
 
   const PGListing({
     required this.name,
@@ -27,5 +30,8 @@ class PGListing {
     required this.lng,
     required this.imageUrl,
     required this.amenities,
+    required this.gender,
+    required this.foodIncluded,
+    required this.hasAc,
   });
 }

@@ -19,30 +19,40 @@ class ChatOnboardingScreen extends StatefulWidget {
 class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
   final List<Map<String, dynamic>> _steps = [
     {
-      'prompt': 'Hi there! I\'m your CityEase AI assistant. What\'s your monthly rent budget?',
-      'options': ['₹15k - ₹25k', '₹25k - ₹35k', '₹35k+', 'All'],
+      'prompt': 'Hi! I\'m your CityEase AI assistant. Let\'s find the perfect stay for you. What is your monthly rent budget?',
+      'options': ['₹5k - ₹10k', '₹10k - ₹15k', '₹15k - ₹25k', 'All'],
       'key': 'budget',
     },
     {
-      'prompt': 'Great! Type your preferred city or area in India and choose one from the list below.',
+      'prompt': 'Great! Where is your office located? Please search and select from suggestions.',
       'options': areaSuggestions,
       'key': 'officeArea',
     },
     {
-      'prompt': 'What\'s your lifestyle preference?',
-      'options': ['Vibrant nightlife', 'Quiet comfort', 'Co-living energy', 'Premium lifestyle'],
-      'key': 'lifestyle',
+      'prompt': 'Got it! Whom are you looking for? (Gender preference)',
+      'options': ['Male Only', 'Female Only', 'Co-living'],
+      'key': 'gender',
     },
     {
-      'prompt': 'What\'s your maximum acceptable commute time?',
-      'options': ['15 min max', '30 min max', '45 min max', '1 hour is fine'],
-      'key': 'commute',
+      'prompt': 'Do you need meals/food included in your PG stay?',
+      'options': ['Food Included', 'No Food Preference'],
+      'key': 'foodIncluded',
+    },
+    {
+      'prompt': 'Would you like an AC room or is a Non-AC room fine?',
+      'options': ['AC Room Required', 'Non-AC is Fine'],
+      'key': 'acRequired',
+    },
+    {
+      'prompt': 'How close to your office would you like to stay?',
+      'options': ['Walking distance (<1km)', 'Short drive (<4km)', 'Any (<10km)'],
+      'key': 'distancePref',
     },
   ];
 
   final List<Map<String, String>> _messages = [
     {
-      'text': 'Hi there! 👋 I\'m your CityEase AI assistant. What\'s your monthly rent budget?',
+      'text': 'Hi! 👋 I\'m your CityEase AI assistant. Let\'s find the perfect stay for you. What is your monthly rent budget?',
       'sender': 'bot',
     },
   ];
@@ -57,12 +67,16 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
   String _officeLocation = 'Koramangala office';
   double _officeLat = 12.9352;
   double _officeLng = 77.6245;
-  String _lifestyle = 'Vibrant nightlife';
-  String _commute = '30 min max';
+  String _gender = 'Co-living';
+  bool _foodIncluded = true;
+  String _distancePref = 'Any (<10km)';
+  bool _acRequired = true;
+
   String? _selectedPlaceId;
   List<AutocompletePrediction> _placePredictions = [];
   List<String> _localSuggestions = [];
   bool _isLoadingPredictions = false;
+  bool _isTyping = false;
 
   @override
   void initState() {
@@ -89,7 +103,6 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
       return;
     }
 
-    // 1. Instant case-insensitive substring search matching ANY location containing the text
     final suggestions = areaSuggestions
         .where((area) => area.toLowerCase().contains(typed))
         .toList();
@@ -99,7 +112,6 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
       _localSuggestions = suggestions;
     });
 
-    // 2. Fetch from Google Places API if configured
     final results = await _placesService.autocomplete(value);
     if (!mounted) return;
     setState(() {
@@ -154,22 +166,11 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
       return;
     }
 
-    setState(() {
-      _officeLocation = selectedOffice.label;
-      _officeLat = selectedOffice.latitude;
-      _officeLng = selectedOffice.longitude;
-      _currentStep += 1;
-      _messages.add({
-        'text': 'Great! I set your office at ${selectedOffice.label}.',
-        'sender': 'bot',
-      });
-      if (_currentStep < _steps.length) {
-        _messages.add({
-          'text': _steps[_currentStep]['prompt'] as String,
-          'sender': 'bot',
-        });
-      }
-    });
+    _officeLocation = selectedOffice.label;
+    _officeLat = selectedOffice.latitude;
+    _officeLng = selectedOffice.longitude;
+    
+    await _advanceStep('Set office coordinates');
   }
 
   Future<void> _selectLocalSuggestion(String suggestion) async {
@@ -207,39 +208,23 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
       return;
     }
 
-    setState(() {
-      _officeLocation = selectedOffice.label;
-      _officeLat = selectedOffice.latitude;
-      _officeLng = selectedOffice.longitude;
-      _currentStep += 1;
-      _messages.add({
-        'text': 'Great! I set your office at ${selectedOffice.label}.',
-        'sender': 'bot',
-      });
-      if (_currentStep < _steps.length) {
-        _messages.add({
-          'text': _steps[_currentStep]['prompt'] as String,
-          'sender': 'bot',
-        });
-      }
-    });
+    _officeLocation = selectedOffice.label;
+    _officeLat = selectedOffice.latitude;
+    _officeLng = selectedOffice.longitude;
+
+    await _advanceStep('Set office coordinates');
   }
 
   LatLng _coordsForArea(String area) {
-    // 1. Check coordinates map from areaSuggestions
     if (areaCoordinates.containsKey(area)) {
       return areaCoordinates[area]!;
     }
-    
-    // 2. Perform case-insensitive search in keys
     final query = area.toLowerCase();
     for (var entry in areaCoordinates.entries) {
       if (entry.key.toLowerCase().contains(query) || query.contains(entry.key.toLowerCase())) {
         return entry.value;
       }
     }
-    
-    // 3. Fallback logic
     if (query.contains('koramangala')) return const LatLng(12.9352, 77.6245);
     if (query.contains('indiranagar')) return const LatLng(12.9719, 77.6412);
     if (query.contains('whitefield')) return const LatLng(12.9690, 77.7493);
@@ -248,14 +233,6 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
     if (query.contains('vasco')) return const LatLng(15.3979, 73.8150);
     if (query.contains('goa')) return const LatLng(15.4909, 73.8278);
     if (query.contains('panaji')) return const LatLng(15.4909, 73.8278);
-    if (query.contains('margao')) return const LatLng(15.2993, 73.9643);
-    if (query.contains('calangute')) return const LatLng(15.5450, 73.7570);
-    if (query.contains('juhu')) return const LatLng(19.0986, 72.8263);
-    if (query.contains('bandra')) return const LatLng(19.0514, 72.8402);
-    if (query.contains('pune')) return const LatLng(18.5204, 73.8567);
-    if (query.contains('connaught place') || query.contains('cp')) return const LatLng(28.6315, 77.2167);
-    if (query.contains('bits pilani')) return const LatLng(28.3639, 75.5880);
-    if (query.contains('bits hyderabad')) return const LatLng(17.5449, 78.5717);
     return const LatLng(20.5937, 78.9629);
   }
 
@@ -278,17 +255,36 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
     setState(() {
       _messages.add({'text': answer, 'sender': 'user'});
       if (key == 'budget') _budget = answer;
-      if (key == 'lifestyle') _lifestyle = answer;
-      if (key == 'commute') _commute = answer;
+      if (key == 'gender') _gender = answer;
+      if (key == 'foodIncluded') _foodIncluded = answer.contains('Included');
+      if (key == 'acRequired') _acRequired = answer.contains('Required');
+      if (key == 'distancePref') _distancePref = answer;
+    });
+
+    _controller.clear();
+    await _advanceStep(answer);
+  }
+
+  Future<void> _advanceStep(String lastAnswer) async {
+    setState(() {
       _currentStep += 1;
-      if (_currentStep < _steps.length) {
+    });
+
+    if (_currentStep < _steps.length) {
+      // Trigger dynamic chatbot typing state
+      setState(() {
+        _isTyping = true;
+      });
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (!mounted) return;
+      setState(() {
+        _isTyping = false;
         _messages.add({
           'text': _steps[_currentStep]['prompt'] as String,
           'sender': 'bot',
         });
-      }
-      _controller.clear();
-    });
+      });
+    }
   }
 
   void _sendCustomAnswer() {
@@ -304,8 +300,12 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
       officeLocation: _officeLocation,
       officeLat: _officeLat,
       officeLng: _officeLng,
-      lifestyle: _lifestyle,
-      commute: _commute,
+      lifestyle: 'Quiet Comfort',
+      commute: 'Any',
+      gender: _gender,
+      foodIncluded: _foodIncluded,
+      distancePref: _distancePref,
+      acRequired: _acRequired,
     );
     final shouldReset = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
@@ -448,6 +448,47 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
                       },
                     ),
 
+                    // Typing Indicator
+                    if (_isTyping)
+                      Positioned(
+                        left: 0,
+                        bottom: 90,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF1D2248), Color(0xFF131732)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(24),
+                              topRight: Radius.circular(24),
+                              bottomLeft: Radius.circular(6),
+                              bottomRight: Radius.circular(24),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: const [
+                              SizedBox(
+                                width: 8,
+                                height: 8,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 1.5,
+                                  color: Color(0xFF8C88FF),
+                                ),
+                              ),
+                              SizedBox(width: 12),
+                              Text(
+                                'AI is compiling matching stays...',
+                                style: TextStyle(color: Colors.white38, fontSize: 13, fontWeight: FontWeight.w500),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
                     // Inputs & Autocomplete Dropdowns
                     Align(
                       alignment: Alignment.bottomCenter,
@@ -462,7 +503,7 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
                               ),
                             if (_placePredictions.isNotEmpty || _localSuggestions.isNotEmpty)
                               ConstrainedBox(
-                                constraints: const BoxConstraints(maxHeight: 200),
+                                constraints: const BoxConstraints(maxHeight: 180),
                                 child: Container(
                                   margin: const EdgeInsets.only(bottom: 12),
                                   padding: const EdgeInsets.all(8),
@@ -525,7 +566,7 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
                                 ),
                               ),
                           ],
-                          if (currentOptions.isNotEmpty) ...[
+                          if (currentOptions.isNotEmpty && !_isTyping) ...[
                             SizedBox(
                               height: 42,
                               child: ListView.separated(

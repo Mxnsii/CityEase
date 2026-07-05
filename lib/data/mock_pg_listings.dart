@@ -17,6 +17,9 @@ const List<PGListing> allPgListings = [
     lng: 73.8760,
     imageUrl: 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=500&q=80',
     amenities: ['Wi-Fi', 'AC Rooms', 'Daily Housekeeping', 'Power Backup'],
+    gender: 'Unisex',
+    foodIncluded: true,
+    hasAc: true,
   ),
   PGListing(
     name: 'BITS Enclave',
@@ -32,6 +35,9 @@ const List<PGListing> allPgListings = [
     lng: 73.8500,
     imageUrl: 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=500&q=80',
     amenities: ['High-speed Wi-Fi', 'Attached Bathroom', 'Lounge Area', 'Washing Machine'],
+    gender: 'Male',
+    foodIncluded: false,
+    hasAc: false,
   ),
   // GOA - Panaji
   PGListing(
@@ -48,6 +54,9 @@ const List<PGListing> allPgListings = [
     lng: 73.8278,
     imageUrl: 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=500&q=80',
     amenities: ['AC Rooms', 'Gym Access', 'Personal Wardrobe', '3-time Meals'],
+    gender: 'Female',
+    foodIncluded: true,
+    hasAc: true,
   ),
   PGListing(
     name: 'Miramar Comfort',
@@ -63,6 +72,9 @@ const List<PGListing> allPgListings = [
     lng: 73.8123,
     imageUrl: 'https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=500&q=80',
     amenities: ['High-speed Wi-Fi', 'Biometric Entry', 'Smart TV', 'AC Rooms'],
+    gender: 'Unisex',
+    foodIncluded: false,
+    hasAc: true,
   ),
   // GOA - Margao
   PGListing(
@@ -79,6 +91,9 @@ const List<PGListing> allPgListings = [
     lng: 73.9644,
     imageUrl: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=500&q=80',
     amenities: ['Wi-Fi', 'AC Rooms', 'Daily Housekeeping', 'Power Backup'],
+    gender: 'Male',
+    foodIncluded: true,
+    hasAc: false,
   ),
 
   // PUNE - Koregaon Park
@@ -96,6 +111,9 @@ const List<PGListing> allPgListings = [
     lng: 73.8939,
     imageUrl: 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=500&q=80',
     amenities: ['High-speed Wi-Fi', 'AC Rooms', '3-time Meals', '24/7 Security'],
+    gender: 'Female',
+    foodIncluded: true,
+    hasAc: true,
   ),
   PGListing(
     name: 'KP Premium Homes',
@@ -111,6 +129,9 @@ const List<PGListing> allPgListings = [
     lng: 73.8966,
     imageUrl: 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=500&q=80',
     amenities: ['Wi-Fi', 'AC Rooms', 'Daily Housekeeping', 'Power Backup'],
+    gender: 'Unisex',
+    foodIncluded: false,
+    hasAc: true,
   ),
   // PUNE - Baner
   PGListing(
@@ -127,6 +148,9 @@ const List<PGListing> allPgListings = [
     lng: 73.7868,
     imageUrl: 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=500&q=80',
     amenities: ['High-speed Wi-Fi', 'Attached Bathroom', 'Lounge Area', 'Washing Machine'],
+    gender: 'Male',
+    foodIncluded: true,
+    hasAc: true,
   ),
   PGListing(
     name: 'Highstreet PG',
@@ -142,6 +166,9 @@ const List<PGListing> allPgListings = [
     lng: 73.7800,
     imageUrl: 'https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=500&q=80',
     amenities: ['AC Rooms', 'Gym Access', 'Personal Wardrobe', '3-time Meals'],
+    gender: 'Female',
+    foodIncluded: true,
+    hasAc: true,
   ),
 
   // BANGALORE - Koramangala
@@ -159,6 +186,9 @@ const List<PGListing> allPgListings = [
     lng: 77.6245,
     imageUrl: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=500&q=80',
     amenities: ['High-speed Wi-Fi', 'AC Rooms', '3-time Meals', '24/7 Security'],
+    gender: 'Unisex',
+    foodIncluded: true,
+    hasAc: true,
   ),
   PGListing(
     name: 'Cafe Lane PG',
@@ -174,6 +204,9 @@ const List<PGListing> allPgListings = [
     lng: 77.6110,
     imageUrl: 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=500&q=80',
     amenities: ['Wi-Fi', 'AC Rooms', 'Daily Housekeeping', 'Power Backup'],
+    gender: 'Male',
+    foodIncluded: true,
+    hasAc: false,
   ),
   // BANGALORE - Indiranagar
   PGListing(
@@ -190,6 +223,9 @@ const List<PGListing> allPgListings = [
     lng: 77.6408,
     imageUrl: 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=500&q=80',
     amenities: ['High-speed Wi-Fi', 'Attached Bathroom', 'Lounge Area', 'Washing Machine'],
+    gender: 'Female',
+    foodIncluded: true,
+    hasAc: true,
   ),
   PGListing(
     name: 'Green Lane PG',
@@ -205,6 +241,9 @@ const List<PGListing> allPgListings = [
     lng: 77.6412,
     imageUrl: 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=500&q=80',
     amenities: ['AC Rooms', 'Gym Access', 'Personal Wardrobe', '3-time Meals'],
+    gender: 'Unisex',
+    foodIncluded: true,
+    hasAc: true,
   ),
 ];
 
@@ -213,34 +252,44 @@ List<PGListing> getPgListingsNearLocation(double lat, double lng, {double radius
 }
 
 List<PGListing> generateDynamicMockPgs(String areaName, double lat, double lng) {
-  // Generate 5 dynamic PGs centered around this custom area
   final cleanName = areaName.split(',').first.trim();
   
   final pgNames = [
-    '$cleanName Elite Co-Living',
-    '$cleanName Nest PG',
-    'Zolo $cleanName Premium',
-    'Stanza Living $cleanName House',
-    'The $cleanName Luxury Stays',
+    '$cleanName Girls Luxury Haven',
+    'Stanza Living $cleanName Boys House',
+    'Zolo $cleanName Co-Living',
+    '$cleanName Comfort Stay PG',
+    'Saraswati Female Nest',
+    'Shiv Shankar PG for Boys',
+    '$cleanName Premium Suites',
   ];
   
   final locations = [
-    'Near Main Market, $cleanName',
+    '200m from Hub, $cleanName',
+    'Near Metro Station, $cleanName',
+    'Tech Park Road, $cleanName',
+    'Main Market Street, $cleanName',
+    'Greenfield Lane, $cleanName',
     'Opposite City Park, $cleanName',
-    'Tech Hub Street, $cleanName',
-    'Metro Station Road, $cleanName',
-    'Premium Enclave, $cleanName',
+    'Luxury Lane Sector 2, $cleanName',
   ];
   
-  final rents = [14500, 18000, 22500, 26000, 31000];
-  final ratings = [4.3, 4.5, 4.2, 4.7, 4.6];
-  final safetyScores = [8.2, 8.8, 8.0, 9.2, 9.0];
+  final rents = [8500, 9500, 14500, 18000, 7800, 11000, 24000];
+  final ratings = [4.6, 4.2, 4.5, 4.3, 4.4, 4.1, 4.8];
+  final safetyScores = [9.2, 8.1, 8.8, 8.0, 8.9, 7.8, 9.4];
+  
+  final genders = ['Female', 'Male', 'Unisex', 'Female', 'Female', 'Male', 'Unisex'];
+  final foodOpts = [true, true, false, true, true, false, true];
+  final acOpts = [true, false, true, false, false, false, true];
+
   final vibes = [
-    'Student friendly with active study lounges and co-working areas',
-    'Calm residential environment, ideal for quiet professionals',
-    'Vibrant nightlife nearby, active social community spaces',
-    'Luxury amenities with housekeeping and personal chef services',
-    'Modern tech-enabled spaces, biometric entry, and smart rooms',
+    'Ultra safe stays for women with premium biometrics & gym access',
+    'Student-friendly co-working spaces with high-speed internet',
+    'Vibrant community spaces, ideal for young IT professionals',
+    'Cozy, peaceful residential area, very close to prime transport links',
+    'Budget-friendly safe home-stay feel for students and interns',
+    'Simple rooms near local colleges, active sports lounge area',
+    'Modern executive suites with parking, private lounge, and housekeeping',
   ];
   
   final images = [
@@ -249,22 +298,37 @@ List<PGListing> generateDynamicMockPgs(String areaName, double lat, double lng) 
     'https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=500&q=80',
     'https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=500&q=80',
     'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=500&q=80',
+    'https://images.unsplash.com/photo-1536376072261-38c75010e6c9?auto=format&fit=crop&w=500&q=80',
+    'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=500&q=80',
   ];
   
   final allAmenitiesList = [
-    ['High-speed Wi-Fi', 'AC Rooms', '3-time Meals', '24/7 Security'],
-    ['Wi-Fi', 'AC Rooms', 'Daily Housekeeping', 'Power Backup'],
-    ['High-speed Wi-Fi', 'Attached Bathroom', 'Lounge Area', 'Washing Machine'],
-    ['AC Rooms', 'Gym Access', 'Personal Wardrobe', '3-time Meals'],
-    ['High-speed Wi-Fi', 'Biometric Entry', 'Smart TV', 'AC Rooms'],
+    ['Wi-Fi', 'AC Rooms', '3-time Meals', '24/7 Security', 'Gym Access'],
+    ['Wi-Fi', 'Laundry', 'Lounge Area', 'Daily Housekeeping'],
+    ['High-speed Wi-Fi', 'Attached Washroom', 'AC Rooms', 'Biometric Entry'],
+    ['Wi-Fi', 'Power Backup', 'Daily Housekeeping'],
+    ['3-time Meals', 'Wi-Fi', '24/7 Security', 'Attached Washroom'],
+    ['Wi-Fi', 'Power Backup', 'Washing Machine'],
+    ['High-speed Wi-Fi', 'AC Rooms', 'Attached Washroom', 'Parking', 'Gym'],
   ];
 
-  final random = math.Random(areaName.hashCode); // Seeded for consistency
+  final random = math.Random(areaName.hashCode);
 
-  return List.generate(5, (index) {
-    // Generate slight offset for coordinates within 1-2km (0.009 degree is approx 1km)
-    final latOffset = (random.nextDouble() - 0.5) * 0.025;
-    final lngOffset = (random.nextDouble() - 0.5) * 0.025;
+  return List.generate(7, (index) {
+    // Systematic offsets for distance testing:
+    // Index 0: very close (Walking: ~400m)
+    // Index 1: moderate (Walking/Drive: ~900m)
+    // Index 2: mid-distance (~1.8km)
+    // Index 3: far (~3.2km)
+    // Index 4: very close budget stay (~500m)
+    // Index 5: moderate (~1.4km)
+    // Index 6: executive stay (~2.5km)
+    double distanceMultiplier = 0.004 * (index + 1);
+    if (index == 4) distanceMultiplier = 0.005; // close
+
+    final angle = random.nextDouble() * 2 * math.pi;
+    final latOffset = math.sin(angle) * distanceMultiplier;
+    final lngOffset = math.cos(angle) * distanceMultiplier;
 
     return PGListing(
       name: pgNames[index],
@@ -280,6 +344,9 @@ List<PGListing> generateDynamicMockPgs(String areaName, double lat, double lng) 
       lng: lng + lngOffset,
       imageUrl: images[index],
       amenities: allAmenitiesList[index],
+      gender: genders[index],
+      foodIncluded: foodOpts[index],
+      hasAc: acOpts[index],
     );
   });
 }

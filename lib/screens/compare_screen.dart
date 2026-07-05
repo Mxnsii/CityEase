@@ -1,15 +1,57 @@
 import 'package:flutter/material.dart';
-
-import '../models/neighborhood.dart';
+import 'results_screen.dart';
 
 class CompareScreen extends StatelessWidget {
-  final Neighborhood left;
-  final Neighborhood right;
+  final List<PGListingWithScore> pgs;
+  final double officeLat;
+  final double officeLng;
 
-  const CompareScreen({super.key, required this.left, required this.right});
+  const CompareScreen({
+    super.key,
+    required this.pgs,
+    required this.officeLat,
+    required this.officeLng,
+  });
 
   @override
   Widget build(BuildContext context) {
+    // 1. Identify best values for highlighting
+    int bestRentIndex = -1;
+    int bestDistanceIndex = -1;
+    int bestScoreIndex = -1;
+    int bestRatingIndex = -1;
+
+    if (pgs.isNotEmpty) {
+      int minRent = pgs.first.pg.rent;
+      double minDistance = pgs.first.distance;
+      int maxScore = pgs.first.score;
+      double maxRating = pgs.first.pg.rating;
+
+      bestRentIndex = 0;
+      bestDistanceIndex = 0;
+      bestScoreIndex = 0;
+      bestRatingIndex = 0;
+
+      for (int i = 1; i < pgs.length; i++) {
+        if (pgs[i].pg.rent < minRent) {
+          minRent = pgs[i].pg.rent;
+          bestRentIndex = i;
+        }
+        if (pgs[i].distance < minDistance) {
+          minDistance = pgs[i].distance;
+          bestDistanceIndex = i;
+        }
+        if (pgs[i].score > maxScore) {
+          maxScore = pgs[i].score;
+          bestScoreIndex = i;
+        }
+        if (pgs[i].pg.rating > maxRating) {
+          maxRating = pgs[i].pg.rating;
+          bestRatingIndex = i;
+        }
+      }
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFF090B19),
       appBar: AppBar(
@@ -19,157 +61,299 @@ class CompareScreen extends StatelessWidget {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Compare Neighborhoods', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
-            const Text('Side-by-side comparison', style: TextStyle(color: Colors.white54, fontSize: 13)),
+            const Text('Compare Stays', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+            Text('Comparing ${pgs.length} selected PGs', style: const TextStyle(color: Colors.white54, fontSize: 13)),
           ],
         ),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(child: _buildCandidateHeader('Candidate 1', left)),
-                    const SizedBox(width: 14),
-                    Expanded(child: _buildCandidateHeader('Candidate 2', right)),
-                  ],
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Fixed Labels Column (Left)
+                      _buildLabelsColumn(),
+
+                      // Scrollable Stays Columns (Right)
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: List.generate(pgs.length, (index) {
+                              final item = pgs[index];
+                              return _buildStayValueColumn(
+                                item,
+                                index,
+                                isBestRent: index == bestRentIndex,
+                                isBestDistance: index == bestDistanceIndex,
+                                isBestScore: index == bestScoreIndex,
+                                isBestRating: index == bestRatingIndex,
+                              );
+                            }),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 32),
-              _buildComparisonRow(
-                title: 'Commute Time',
-                icon: Icons.schedule,
-                val1: '${left.commuteMinutes} min',
-                val2: '${right.commuteMinutes} min',
-                isLeftBetter: left.commuteMinutes < right.commuteMinutes,
-              ),
-              const SizedBox(height: 24),
-              _buildComparisonRow(
-                title: 'Safety Score',
-                icon: Icons.shield_outlined,
-                val1: '${left.safetyScore}/10',
-                val2: '${right.safetyScore}/10',
-                isLeftBetter: left.safetyScore > right.safetyScore,
-              ),
-              const SizedBox(height: 24),
-              _buildComparisonRow(
-                title: 'Avg Rent',
-                icon: Icons.currency_rupee,
-                val1: '₹${left.averageRent ~/ 1000}k',
-                val2: '₹${right.averageRent ~/ 1000}k',
-                isLeftBetter: left.averageRent < right.averageRent,
-              ),
-              const SizedBox(height: 24),
-              _buildComparisonRow(
-                title: 'AI Match Score',
-                icon: Icons.auto_graph,
-                val1: '${left.matchScore}%',
-                val2: '${right.matchScore}%',
-                isLeftBetter: left.matchScore > right.matchScore,
-              ),
-              const SizedBox(height: 24),
-              _buildComparisonRow(
-                title: 'Vibe',
-                icon: Icons.local_cafe_outlined,
-                val1: left.vibe,
-                val2: right.vibe,
-                isLeftBetter: null, // neutral comparison
-              ),
-              const SizedBox(height: 40),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildCandidateHeader(String badge, Neighborhood item) {
+  Widget _buildLabelsColumn() {
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF10142A),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF2D3161)),
-      ),
+      width: 130,
+      padding: const EdgeInsets.only(left: 16),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFF202652),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(badge, style: const TextStyle(color: Color(0xFF8C88FF), fontSize: 12, fontWeight: FontWeight.w600)),
-          ),
-          const SizedBox(height: 16),
-          Text(item.name, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 8),
-          Text(item.tagline, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white54, fontSize: 13, height: 1.4)),
+          _buildCellLabel('Stay Details', height: 90),
+          _buildCellLabel('Room Preview', height: 100),
+          _buildCellLabel('Match Rate', height: 60),
+          _buildCellLabel('Monthly Rent', height: 60),
+          _buildCellLabel('Distance', height: 60),
+          _buildCellLabel('Commute Time', height: 60),
+          _buildCellLabel('Rating', height: 60),
+          _buildCellLabel('Gender Target', height: 60),
+          _buildCellLabel('Food Included', height: 60),
+          _buildCellLabel('AC / Non-AC', height: 60),
+          _buildCellLabel('📶 Wi-Fi', height: 50),
+          _buildCellLabel('🧺 Laundry', height: 50),
+          _buildCellLabel('🏋️ Gym', height: 50),
+          _buildCellLabel('🚗 Parking', height: 50),
+          _buildCellLabel('🔒 Security', height: 50),
+          _buildCellLabel('Other Features', height: 80),
         ],
       ),
     );
   }
 
-  Widget _buildComparisonRow({
-    required String title,
-    required IconData icon,
-    required String val1,
-    required String val2,
-    required bool? isLeftBetter,
+  Widget _buildCellLabel(String label, {required double height}) {
+    return Container(
+      height: height,
+      alignment: Alignment.centerLeft,
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Color(0xFF1D2245), width: 1)),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white54,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStayValueColumn(
+    PGListingWithScore item,
+    int index, {
+    required bool isBestRent,
+    required bool isBestDistance,
+    required bool isBestScore,
+    required bool isBestRating,
   }) {
-    final leftColor = isLeftBetter == true ? const Color(0xFF143026) : const Color(0xFF10142A);
-    final leftBorder = isLeftBetter == true ? const Color(0xFF1D5A3C) : const Color(0xFF2D3161);
-    final leftTextColor = isLeftBetter == true ? const Color(0xFF4ADE80) : Colors.white;
+    final hasWifi = item.pg.amenities.any((a) => a.toLowerCase().contains('wi-fi'));
+    final hasLaundry = item.pg.amenities.any((a) => a.toLowerCase().contains('laundry') || a.toLowerCase().contains('washing'));
+    final hasGym = item.pg.amenities.any((a) => a.toLowerCase().contains('gym'));
+    final hasParking = item.pg.amenities.any((a) => a.toLowerCase().contains('parking'));
+    final hasSecurity = item.pg.amenities.any((a) => a.toLowerCase().contains('security'));
 
-    final rightColor = isLeftBetter == false ? const Color(0xFF143026) : const Color(0xFF10142A);
-    final rightBorder = isLeftBetter == false ? const Color(0xFF1D5A3C) : const Color(0xFF2D3161);
-    final rightTextColor = isLeftBetter == false ? const Color(0xFF4ADE80) : Colors.white;
+    final otherAmenities = item.pg.amenities
+        .where((a) =>
+            !a.toLowerCase().contains('wi-fi') &&
+            !a.toLowerCase().contains('laundry') &&
+            !a.toLowerCase().contains('washing') &&
+            !a.toLowerCase().contains('gym') &&
+            !a.toLowerCase().contains('parking') &&
+            !a.toLowerCase().contains('security'))
+        .join(', ');
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, size: 18, color: Colors.white54),
-            const SizedBox(width: 8),
-            Text(title, style: const TextStyle(color: Colors.white54, fontSize: 14)),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                decoration: BoxDecoration(
-                  color: leftColor,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: leftBorder),
-                ),
-                child: Text(val1, style: TextStyle(color: leftTextColor, fontWeight: FontWeight.w700, fontSize: 15)),
-              ),
+    return Container(
+      width: 170,
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFF121632),
+        borderRadius: index == 0
+            ? const BorderRadius.horizontal(left: Radius.circular(16))
+            : index == pgs.length - 1
+                ? const BorderRadius.horizontal(right: Radius.circular(16))
+                : BorderRadius.zero,
+      ),
+      child: Column(
+        children: [
+          // Stay Details Header
+          Container(
+            height: 90,
+            padding: const EdgeInsets.all(10),
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+              border: Border(bottom: BorderSide(color: Color(0xFF1D2245))),
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                decoration: BoxDecoration(
-                  color: rightColor,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: rightBorder),
-                ),
-                child: Text(val2, style: TextStyle(color: rightTextColor, fontWeight: FontWeight.w700, fontSize: 15)),
-              ),
+            child: Text(
+              item.pg.name,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
             ),
-          ],
+          ),
+
+          // Preview Photo
+          Container(
+            height: 100,
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              border: Border(bottom: BorderSide(color: Color(0xFF1D2245))),
+            ),
+            child: Image.network(
+              item.pg.imageUrl,
+              fit: BoxFit.cover,
+              errorBuilder: (c, o, s) => const Icon(Icons.home_work_rounded, color: Colors.white24),
+            ),
+          ),
+
+          // Match Rate (Highlight if Best)
+          _buildComparisonCell(
+            '${item.score}% Match',
+            height: 60,
+            isBest: isBestScore,
+          ),
+
+          // Rent (Highlight if Best)
+          _buildComparisonCell(
+            '₹${item.pg.rent}/mo',
+            height: 60,
+            isBest: isBestRent,
+          ),
+
+          // Distance (Highlight if Best)
+          _buildComparisonCell(
+            '${item.distance.toStringAsFixed(1)} km',
+            height: 60,
+            isBest: isBestDistance,
+          ),
+
+          // Commute Time
+          _buildComparisonCell(
+            '${item.commuteMinutes} min',
+            height: 60,
+          ),
+
+          // Rating (Highlight if Best)
+          _buildComparisonCell(
+            '${item.pg.rating} ⭐',
+            height: 60,
+            isBest: isBestRating,
+          ),
+
+          // Gender Target
+          _buildComparisonCell(
+            item.pg.gender,
+            height: 60,
+          ),
+
+          // Food Option
+          _buildComparisonCell(
+            item.pg.foodIncluded ? 'Included' : 'Not Included',
+            height: 60,
+          ),
+
+          // AC Option
+          _buildComparisonCell(
+            item.pg.hasAc ? 'AC Room' : 'Non-AC',
+            height: 60,
+          ),
+
+          // Wi-Fi Check
+          _buildIconCell(hasWifi, height: 50),
+
+          // Laundry Check
+          _buildIconCell(hasLaundry, height: 50),
+
+          // Gym Check
+          _buildIconCell(hasGym, height: 50),
+
+          // Parking Check
+          _buildIconCell(hasParking, height: 50),
+
+          // Security Check
+          _buildIconCell(hasSecurity, height: 50),
+
+          // Other amenities list
+          Container(
+            height: 80,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+              border: Border(bottom: BorderSide(color: Color(0xFF1D2245))),
+            ),
+            child: Text(
+              otherAmenities.isEmpty ? 'None' : otherAmenities,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white70, fontSize: 11),
+              maxLines: 4,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildComparisonCell(
+    String value, {
+    required double height,
+    bool isBest = false,
+  }) {
+    return Container(
+      height: height,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: isBest ? const Color(0xFF163C25) : Colors.transparent,
+        border: Border(
+          bottom: const BorderSide(color: Color(0xFF1D2245)),
+          left: isBest ? const BorderSide(color: Color(0xFF34D399), width: 1.5) : BorderSide.none,
+          right: isBest ? const BorderSide(color: Color(0xFF34D399), width: 1.5) : BorderSide.none,
         ),
-      ],
+      ),
+      child: Text(
+        value,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: isBest ? const Color(0xFF34D399) : Colors.white,
+          fontWeight: isBest ? FontWeight.w900 : FontWeight.w700,
+          fontSize: 13,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIconCell(bool active, {required double height}) {
+    return Container(
+      height: height,
+      alignment: Alignment.center,
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Color(0xFF1D2245))),
+      ),
+      child: Icon(
+        active ? Icons.check_circle_rounded : Icons.cancel_outlined,
+        color: active ? const Color(0xFF4ADE80) : const Color(0xFFEF4444).withValues(alpha: 0.5),
+        size: 18,
+      ),
     );
   }
 }
