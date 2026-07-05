@@ -362,7 +362,7 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
                       ),
                       SizedBox(height: 6),
                       Text(
-                        'Let\'s find your perfect stay stay',
+                        'Let\'s find your perfect neighborhood',
                         style: TextStyle(color: Colors.white60, fontSize: 13),
                       ),
                     ],

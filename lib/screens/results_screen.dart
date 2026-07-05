@@ -339,7 +339,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     scrollDirection: Axis.horizontal,
                     physics: const BouncingScrollPhysics(),
                     itemCount: _topRecommendations.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 14),
+                    separatorBuilder: (context, index) => const SizedBox(width: 14),
                     itemBuilder: (context, index) {
                       return _buildFeaturedCard(context, _topRecommendations[index]);
                     },
@@ -496,7 +496,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     scrollDirection: Axis.horizontal,
                     physics: const BouncingScrollPhysics(),
                     itemCount: filteredPgs.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 12),
+                    separatorBuilder: (context, index) => const SizedBox(width: 12),
                     itemBuilder: (context, index) {
                       return _buildStandardCard(context, filteredPgs[index]);
                     },
