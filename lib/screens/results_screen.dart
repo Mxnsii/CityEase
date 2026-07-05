@@ -42,12 +42,17 @@ class _ResultsScreenState extends State<ResultsScreen> {
   final List<PGListingWithScore> _selectedComparePgs = [];
   List<String> _favoritePgNames = [];
 
-  // Refined Interactive Filters State
+  // Refined Interactive Filters State (Point 8)
   late String _filterBudget;
   late String _filterDistance;
   late bool _filterAc;
   late bool _filterFood;
   late String _filterGender;
+  bool _filterLaundry = false;
+  bool _filterWifi = false;
+  bool _filterParking = false;
+  bool _filterWashroom = false;
+
   String _sortBy = 'Best Match';
   bool _showFavoritesOnly = false;
 
@@ -103,6 +108,10 @@ class _ResultsScreenState extends State<ResultsScreen> {
       _filterAc = widget.criteria.acRequired;
       _filterFood = widget.criteria.foodIncluded;
       _filterGender = widget.criteria.gender;
+      _filterLaundry = false;
+      _filterWifi = false;
+      _filterParking = false;
+      _filterWashroom = false;
       _sortBy = 'Best Match';
       _showFavoritesOnly = false;
     });
@@ -168,31 +177,49 @@ class _ResultsScreenState extends State<ResultsScreen> {
           widget.criteria.officeLat, widget.criteria.officeLng, pg.lat, pg.lng);
       final commuteTime = GeoUtils.calculateCommuteMinutes(distance);
 
+      // Amenities filter checks
+      final hasWifi = pg.amenities.any((a) => a.toLowerCase().contains('wi-fi'));
+      final hasLaundry = pg.amenities.any((a) => a.toLowerCase().contains('laundry') || a.toLowerCase().contains('washing'));
+      final hasParking = pg.amenities.any((a) => a.toLowerCase().contains('parking'));
+      final hasWashroom = pg.amenities.any((a) => a.toLowerCase().contains('bathroom') || a.toLowerCase().contains('washroom'));
+
       final isBudgetMatch = pg.rent <= maxRent;
       final isDistanceMatch = distance <= distanceLimit;
       final isGenderMatch = _genderMatches(pg.gender, _filterGender);
       final isFoodMatch = !_filterFood || pg.foodIncluded;
       final isAcMatch = !_filterAc || pg.hasAc;
+      final isLaundryMatch = !_filterLaundry || hasLaundry;
+      final isWifiMatch = !_filterWifi || hasWifi;
+      final isParkingMatch = !_filterParking || hasParking;
+      final isWashroomMatch = !_filterWashroom || hasWashroom;
 
-      final isStrictMatch = isBudgetMatch && isDistanceMatch && isGenderMatch && isFoodMatch && isAcMatch;
+      final isStrictMatch = isBudgetMatch &&
+          isDistanceMatch &&
+          isGenderMatch &&
+          isFoodMatch &&
+          isAcMatch &&
+          isLaundryMatch &&
+          isWifiMatch &&
+          isParkingMatch &&
+          isWashroomMatch;
 
       List<String> matches = [];
       List<String> mismatches = [];
 
       if (isBudgetMatch) {
-        matches.add('Within budget (₹${pg.rent})');
+        matches.add('Budget Match');
       } else {
         mismatches.add('₹${pg.rent}/mo exceeds budget');
       }
 
       if (isDistanceMatch) {
-        matches.add('Close to office (${distance.toStringAsFixed(1)} km)');
+        matches.add('Walking Distance');
       } else {
         mismatches.add('${distance.toStringAsFixed(1)} km exceeds preferred range');
       }
 
       if (isGenderMatch) {
-        matches.add('${pg.gender} accommodation');
+        matches.add('${pg.gender} PG');
       } else {
         mismatches.add('Is ${pg.gender} instead of ${_filterGender.replaceAll(' Only', '')}');
       }
@@ -204,35 +231,28 @@ class _ResultsScreenState extends State<ResultsScreen> {
       }
 
       if (pg.hasAc) {
-        matches.add('AC available');
+        matches.add('AC Room');
       } else if (_filterAc) {
         mismatches.add('Non-AC room');
       }
 
-      // Add general matched amenities
-      for (var amenity in pg.amenities.take(2)) {
-        matches.add('Has $amenity');
-      }
+      if (hasLaundry) matches.add('Laundry');
+      if (hasWifi) matches.add('Wi-Fi');
+      if (hasParking) matches.add('Parking');
+      if (hasWashroom) matches.add('Attached Washroom');
 
       // 20. End-to-end scoring model weights:
-      // Preference match: 50% (Gender 20%, Food 15%, AC 15%)
       double genderScore = isGenderMatch ? 20.0 : 0.0;
       double foodScore = (pg.foodIncluded || !_filterFood) ? 15.0 : 5.0;
       double acScore = (pg.hasAc || !_filterAc) ? 15.0 : 5.0;
 
-      // Budget match: 20%
       double budgetScore = 20.0;
       if (_filterBudget != 'All') {
         budgetScore = (1.0 - (pg.rent / maxRent).clamp(0.0, 1.0)) * 20.0;
       }
 
-      // Distance: 15%
       double distScore = (1.0 - (distance / distanceLimit).clamp(0.0, 1.0)) * 15.0;
-
-      // Amenities: 10%
       double amenitiesScore = (pg.amenities.length / 5.0).clamp(0.0, 1.0) * 10.0;
-
-      // Rating: 5%
       double ratingScore = (pg.rating / 5.0) * 5.0;
 
       int totalScore = (genderScore + foodScore + acScore + budgetScore + distScore + amenitiesScore + ratingScore).round();
@@ -253,7 +273,6 @@ class _ResultsScreenState extends State<ResultsScreen> {
       }
     }
 
-    // Apply Sorting (Point 7)
     void applySortRules(List<PGListingWithScore> list) {
       if (_sortBy == 'Best Match') {
         list.sort((a, b) => b.score.compareTo(a.score));
@@ -283,8 +302,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
   Color _getConfidenceColor(int score) {
     if (score >= 90) return const Color(0xFF4ADE80);
-    if (score >= 75) return const Color(0xFF8C88FF);
-    return const Color(0xFFF87171);
+    if (score >= 75) return const Color(0xFFF59E0B);
+    return const Color(0xFFEF4444);
   }
 
   Widget _buildHubTip() {
@@ -328,13 +347,15 @@ class _ResultsScreenState extends State<ResultsScreen> {
     );
   }
 
-  Widget _buildRefineFilters() {
+  // 7. Search Preferences Card using horizontal visual chips
+  Widget _buildPreferencesCard() {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF121630),
+        color: const Color(0xFF131732),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFF222852)),
+        border: Border.all(color: const Color(0xFF222855)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -342,164 +363,183 @@ class _ResultsScreenState extends State<ResultsScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: const [
-                  Icon(Icons.tune_rounded, color: Color(0xFF8C88FF), size: 18),
-                  SizedBox(width: 8),
-                  Text('Refine Filters', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                ],
+              const Text(
+                'Search Preferences',
+                style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
               ),
-              TextButton(
-                onPressed: _resetFilters,
-                child: const Text('Reset', style: TextStyle(color: Color(0xFF8C88FF), fontSize: 12)),
+              TextButton.icon(
+                onPressed: () => Navigator.of(context).pop(true), // triggers onboarding reset
+                icon: const Icon(Icons.edit_rounded, size: 14, color: Color(0xFF8C88FF)),
+                label: const Text('Edit Preferences', style: TextStyle(color: Color(0xFF8C88FF), fontSize: 12, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          _buildDropdownFilter(
-            'Max Budget',
-            _filterBudget,
-            ['All', '₹5k - ₹10k', '₹10k - ₹15k', '₹15k - ₹25k'],
-            (val) => setState(() { _filterBudget = val!; _computeData(); }),
-          ),
-          const SizedBox(height: 8),
-          _buildDropdownFilter(
-            'Max Distance',
-            _filterDistance,
-            ['Walking distance (<1km)', 'Short drive (<4km)', 'Any (<10km)'],
-            (val) => setState(() { _filterDistance = val!; _computeData(); }),
-          ),
-          const SizedBox(height: 8),
-          _buildDropdownFilter(
-            'Gender Stay',
-            _filterGender,
-            ['Male Only', 'Female Only', 'Co-living'],
-            (val) => setState(() { _filterGender = val!; _computeData(); }),
-          ),
-          const SizedBox(height: 10),
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              Expanded(
-                child: _buildSwitchFilter('AC Room', _filterAc, (val) => setState(() { _filterAc = val; _computeData(); })),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildSwitchFilter('Food Incl.', _filterFood, (val) => setState(() { _filterFood = val; _computeData(); })),
-              ),
+              _buildPrefChip('📍 ${widget.criteria.officeLocation.split(',').first}'),
+              _buildPrefChip('💰 ${widget.criteria.budget}'),
+              _buildPrefChip('👩 ${widget.criteria.gender.replaceAll(' Only', '')}'),
+              _buildPrefChip('🍛 ${widget.criteria.foodIncluded ? "Food Incl." : "No Food"}'),
+              _buildPrefChip('❄️ ${widget.criteria.acRequired ? "AC Required" : "Non-AC Fine"}'),
+              _buildPrefChip('🚗 ${widget.criteria.distancePref.split(' ').first}'),
             ],
-          ),
-          const SizedBox(height: 12),
-          // Sorting Dropdown (Point 7)
-          Row(
-            children: [
-              const Text('Sort by:', style: TextStyle(color: Colors.white70, fontSize: 13)),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF090B19),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF222852)),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _sortBy,
-                      dropdownColor: const Color(0xFF11142B),
-                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
-                      onChanged: (val) {
-                        setState(() {
-                          _sortBy = val!;
-                          _computeData();
-                        });
-                      },
-                      items: ['Best Match', 'Lowest Rent', 'Closest', 'Highest Rated']
-                          .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                          .toList(),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          // Favorites Toggle Chip (Point 9)
-          FilterChip(
-            label: Text(
-              '❤️ Favorites Only (${_favoritePgNames.length})',
-              style: TextStyle(
-                color: _showFavoritesOnly ? Colors.white : Colors.white70,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            selected: _showFavoritesOnly,
-            checkmarkColor: Colors.white,
-            selectedColor: const Color(0xFFEF4444).withValues(alpha: 0.8),
-            backgroundColor: const Color(0xFF090B19),
-            side: BorderSide(color: _showFavoritesOnly ? const Color(0xFFEF4444) : const Color(0xFF222852)),
-            onSelected: (selected) {
-              setState(() {
-                _showFavoritesOnly = selected;
-                _computeData();
-              });
-            },
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDropdownFilter(String label, String value, List<String> items, ValueChanged<String?> onChanged) {
-    return Row(
-      children: [
-        SizedBox(
-          width: 90,
-          child: Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
-        ),
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF090B19),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFF222852)),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: value,
-                dropdownColor: const Color(0xFF11142B),
-                style: const TextStyle(color: Colors.white, fontSize: 12),
-                isExpanded: true,
-                onChanged: onChanged,
-                items: items.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSwitchFilter(String label, bool value, ValueChanged<bool> onChanged) {
+  Widget _buildPrefChip(String label) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFF090B19),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF222852)),
+        color: const Color(0xFF1B2048),
+        borderRadius: BorderRadius.circular(14),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Text(
+        label,
+        style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w500),
+      ),
+    );
+  }
+
+  // 8. Filters: horizontal list of modern filter chips
+  Widget _buildFiltersRow() {
+    return SizedBox(
+      height: 40,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
         children: [
-          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
-          Switch(
-            value: value,
-            activeThumbColor: const Color(0xFF6F5CFF),
-            activeTrackColor: const Color(0xFF6F5CFF).withValues(alpha: 0.4),
-            onChanged: onChanged,
+          _buildFilterChip('Reset Filters', _resetFilters),
+          const SizedBox(width: 8),
+          _buildFilterChip('Budget: $_filterBudget', () => _showFilterOptionsSheet('Max Budget', _filterBudget, ['All', '₹5k - ₹10k', '₹10k - ₹15k', '₹15k - ₹25k'], (v) => setState(() { _filterBudget = v; _computeData(); }))),
+          const SizedBox(width: 8),
+          _buildFilterChip('Commute: ${_filterDistance.split(' ').first}', () => _showFilterOptionsSheet('Max Distance', _filterDistance, ['Walking distance (<1km)', 'Short drive (<4km)', 'Any (<10km)'], (v) => setState(() { _filterDistance = v; _computeData(); }))),
+          const SizedBox(width: 8),
+          _buildFilterChip('Gender: ${_filterGender.replaceAll(' Only', '')}', () => _showFilterOptionsSheet('Gender Target', _filterGender, ['Male Only', 'Female Only', 'Co-living'], (v) => setState(() { _filterGender = v; _computeData(); }))),
+          const SizedBox(width: 8),
+          _buildToggleChip('❄️ AC Required', _filterAc, (b) => setState(() { _filterAc = b; _computeData(); })),
+          const SizedBox(width: 8),
+          _buildToggleChip('🍛 Food Included', _filterFood, (b) => setState(() { _filterFood = b; _computeData(); })),
+          const SizedBox(width: 8),
+          _buildToggleChip('🧺 Laundry', _filterLaundry, (b) => setState(() { _filterLaundry = b; _computeData(); })),
+          const SizedBox(width: 8),
+          _buildToggleChip('📶 Wi-Fi', _filterWifi, (b) => setState(() { _filterWifi = b; _computeData(); })),
+          const SizedBox(width: 8),
+          _buildToggleChip('🚗 Parking', _filterParking, (b) => setState(() { _filterParking = b; _computeData(); })),
+          const SizedBox(width: 8),
+          _buildToggleChip('🚽 Washroom', _filterWashroom, (b) => setState(() { _filterWashroom = b; _computeData(); })),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, VoidCallback onTap) {
+    return ActionChip(
+      label: Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+      backgroundColor: const Color(0xFF121630),
+      side: const BorderSide(color: Color(0xFF222852)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      onPressed: onTap,
+    );
+  }
+
+  Widget _buildToggleChip(String label, bool active, ValueChanged<bool> onSelected) {
+    return FilterChip(
+      label: Text(label, style: TextStyle(color: active ? Colors.white : Colors.white60, fontSize: 12)),
+      selected: active,
+      selectedColor: const Color(0xFF6F5CFF),
+      checkmarkColor: Colors.white,
+      backgroundColor: const Color(0xFF121630),
+      side: BorderSide(color: active ? const Color(0xFF8C88FF) : const Color(0xFF222852)),
+      onSelected: onSelected,
+    );
+  }
+
+  void _showFilterOptionsSheet(String title, String currentValue, List<String> options, ValueChanged<String> onSelected) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF11142B),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 14),
+              ...options.map((option) {
+                final isSelected = option == currentValue;
+                return ListTile(
+                  title: Text(option, style: TextStyle(color: isSelected ? const Color(0xFF8C88FF) : Colors.white70, fontSize: 14)),
+                  trailing: isSelected ? const Icon(Icons.check, color: Color(0xFF8C88FF)) : null,
+                  onTap: () {
+                    onSelected(option);
+                    Navigator.of(context).pop();
+                  },
+                );
+              }),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // 6. Recommendation Summary header
+  Widget _buildSummaryHeader() {
+    final excellent = _exactMatches.where((x) => x.score >= 90).length;
+    final good = _exactMatches.where((x) => x.score >= 70 && x.score < 90).length;
+    final average = _exactMatches.where((x) => x.score < 70).length;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF11142B),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFF20254D)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'We found: ${_exactMatches.length} matching PGs',
+            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildSummaryHeaderBadge('⭐ $excellent Excellent', const Color(0xFF4ADE80)),
+              _buildSummaryHeaderBadge('🟢 $good Good', const Color(0xFFF59E0B)),
+              _buildSummaryHeaderBadge('🟡 $average Average', const Color(0xFFEF4444)),
+            ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryHeaderBadge(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -575,91 +615,81 @@ class _ResultsScreenState extends State<ResultsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 8),
-
-                // Recommendation Summary Card
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF131732),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: const Color(0xFF222855)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: const [
-                          Icon(Icons.tune_rounded, color: Color(0xFF8C88FF), size: 20),
-                          SizedBox(width: 10),
-                          Text(
-                            'Your Search Preferences',
-                            style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      _buildSummaryRow('Office Location', widget.criteria.officeLocation),
-                      _buildSummaryRow('Rent Budget', widget.criteria.budget),
-                      _buildSummaryRow('Gender target', widget.criteria.gender),
-                      _buildSummaryRow('Food Preference', widget.criteria.foodIncluded ? 'Food Included' : 'No Food Preference'),
-                      _buildSummaryRow('AC requirement', widget.criteria.acRequired ? 'AC Room Required' : 'Non-AC is Fine'),
-                      _buildSummaryRow('Commute range', widget.criteria.distancePref),
-                    ],
-                  ),
-                ),
-                
-                // IT Hub tips nearby suggestions (Point 19)
+                _buildPreferencesCard(),
                 _buildHubTip(),
-
-                const SizedBox(height: 20),
+                const SizedBox(height: 18),
                 
-                // Inline Refined filters (Point 12)
-                _buildRefineFilters(),
+                // Horizontal list of filters
+                _buildFiltersRow(),
+                const SizedBox(height: 18),
 
-                const SizedBox(height: 24),
+                // Sort by selection dropdown
+                Row(
+                  children: [
+                    const Text('Sort by:', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                    const SizedBox(width: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF121630),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFF222852)),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _sortBy,
+                          dropdownColor: const Color(0xFF11142B),
+                          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                          onChanged: (val) {
+                            setState(() {
+                              _sortBy = val!;
+                              _computeData();
+                            });
+                          },
+                          items: ['Best Match', 'Lowest Rent', 'Closest', 'Highest Rated']
+                              .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                              .toList(),
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    FilterChip(
+                      label: Text(
+                        '❤️ Favs (${_favoritePgNames.length})',
+                        style: TextStyle(
+                          color: _showFavoritesOnly ? Colors.white : Colors.white70,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      selected: _showFavoritesOnly,
+                      checkmarkColor: Colors.white,
+                      selectedColor: const Color(0xFFEF4444),
+                      backgroundColor: const Color(0xFF121630),
+                      side: BorderSide(color: _showFavoritesOnly ? const Color(0xFFEF4444) : const Color(0xFF222852)),
+                      onSelected: (selected) {
+                        setState(() {
+                          _showFavoritesOnly = selected;
+                          _computeData();
+                        });
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
 
-                // Matches Count Banner (Point 6)
                 if (hasMatches) ...[
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF4ADE80).withValues(alpha: 0.15),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.check_circle_outline_rounded, color: Color(0xFF4ADE80), size: 22),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'We found ${_exactMatches.length} PGs matching your preferences.',
-                              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 2),
-                            const Text(
-                              'Showing only the best matches below.',
-                              style: TextStyle(color: Colors.white54, fontSize: 12),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
+                  _buildSummaryHeader(),
+                  const SizedBox(height: 24),
 
                   // Best Matches For You Section
                   const Text(
-                    'Best Matches for You',
+                    '⭐ Best Matches for You',
                     style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 12),
                   SizedBox(
-                    height: 520,
+                    height: 550,
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       physics: const BouncingScrollPhysics(),
@@ -675,7 +705,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   // Other Matching PGs Section
                   if (others.isNotEmpty) ...[
                     const Text(
-                      'Other Matching PGs',
+                      '📋 Other Matching PGs',
                       style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 12),
@@ -690,32 +720,33 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     ),
                   ],
                 ] else ...[
-                  // 13. Empty state improvement (matches exactly user copy)
+                  // 17. Empty state improvement (matches exactly user copy)
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(18),
+                    padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF30151C),
-                      borderRadius: BorderRadius.circular(22),
-                      border: Border.all(color: const Color(0xFF55222E)),
+                      color: const Color(0xFF1A1F3C),
+                      borderRadius: BorderRadius.circular(26),
+                      border: Border.all(color: const Color(0xFF20254D)),
                     ),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Row(
-                          children: const [
-                            Icon(Icons.warning_amber_rounded, color: Color(0xFFF77171), size: 24),
-                            SizedBox(width: 10),
-                            Text(
-                              'No PGs match all of your selected preferences.',
-                              style: TextStyle(color: Color(0xFFF77171), fontSize: 15, fontWeight: FontWeight.bold),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
                         const Text(
-                          '😔 We couldn\'t find a PG matching all your preferences. Relaxing criteria to show closest matches:',
-                          style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+                          '😔',
+                          style: TextStyle(fontSize: 48),
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'No PG matched all your selected preferences.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Don\'t worry!\nWe found some nearby alternatives you might like.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.white60, fontSize: 13, height: 1.4),
                         ),
                       ],
                     ),
@@ -723,7 +754,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   const SizedBox(height: 24),
 
                   const Text(
-                    'Closest Matches',
+                    'Nearby Alternatives',
                     style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 14),
@@ -747,41 +778,18 @@ class _ResultsScreenState extends State<ResultsScreen> {
     );
   }
 
-  Widget _buildSummaryRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 120,
-            child: Text(
-              '$label:',
-              style: const TextStyle(color: Colors.white38, fontSize: 12, fontWeight: FontWeight.w500),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value.split(',').first.trim(),
-              style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildPgCard(BuildContext context, PGListingWithScore item, {required bool isFeatured, bool isAlternative = false}) {
     final bool isSelected = _selectedComparePgs.any((x) => x.pg.name == item.pg.name);
     final bool isFavorite = _favoritePgNames.contains(item.pg.name);
 
-    // Compute different travel mode times (Point 4)
     final int walkTime = (item.distance * 12).round().clamp(1, 120);
     final int bikeTime = (item.distance * 4).round().clamp(1, 40);
     final int driveTime = (item.distance * 2).round().clamp(1, 20);
 
+    final matchColor = _getConfidenceColor(item.score);
+
     return Container(
-      width: isFeatured ? 300 : double.infinity,
+      width: isFeatured ? 290 : double.infinity,
       decoration: BoxDecoration(
         color: const Color(0xFF121632),
         borderRadius: BorderRadius.circular(26),
@@ -804,23 +812,24 @@ class _ResultsScreenState extends State<ResultsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Reduced Image height slightly so more details fit
           Stack(
             children: [
               ClipRRect(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
                 child: Image.network(
                   item.pg.imageUrl,
-                  height: isFeatured ? 150 : 130,
+                  height: isFeatured ? 130 : 120,
                   width: double.infinity,
                   fit: BoxFit.cover,
                   errorBuilder: (c, o, s) => Container(
-                    height: isFeatured ? 150 : 130,
+                    height: isFeatured ? 130 : 120,
                     color: const Color(0xFF222852),
                     child: const Icon(Icons.home_work_rounded, color: Colors.white24, size: 48),
                   ),
                 ),
               ),
-              // Match Score Overlay Badge (Point 2)
+              // Match Score Overlay Badge (Point 10)
               Positioned(
                 top: 12,
                 left: 12,
@@ -828,39 +837,34 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: isAlternative
-                              ? [const Color(0xFFEC4899), const Color(0xFFD946EF)]
-                              : [const Color(0xFF6F5CFF), const Color(0xFF5038FF)],
-                        ),
-                        borderRadius: BorderRadius.circular(14),
+                        color: matchColor,
+                        borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: (isAlternative ? const Color(0xFFEC4899) : const Color(0xFF6F5CFF)).withValues(alpha: 0.4),
+                            color: matchColor.withValues(alpha: 0.4),
                             blurRadius: 8,
                           ),
                         ],
                       ),
                       child: Text(
                         '${item.score}% Match',
-                        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                       ),
                     ),
                     const SizedBox(height: 4),
-                    // Confidence indicator (Point 14)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.85),
+                        color: Colors.black.withValues(alpha: 0.8),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         _getConfidenceLabel(item.score),
                         style: TextStyle(
-                          color: _getConfidenceColor(item.score),
-                          fontSize: 9,
+                          color: matchColor,
+                          fontSize: 8,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -868,7 +872,6 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   ],
                 ),
               ),
-              // Select for Comparison Checkbox & Favorites Heart (Point 9)
               Positioned(
                 top: 12,
                 right: 12,
@@ -940,7 +943,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
           ),
 
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -950,18 +953,18 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     Expanded(
                       child: Text(
                         item.pg.name,
-                        style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
+                        style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     Row(
                       children: [
-                        const Icon(Icons.star_rounded, color: Color(0xFFFFD43F), size: 16),
+                        const Icon(Icons.star_rounded, color: Color(0xFFFFD43F), size: 15),
                         const SizedBox(width: 4),
                         Text(
                           '${item.pg.rating}',
-                          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
@@ -970,123 +973,84 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 const SizedBox(height: 4),
                 Text(
                   item.pg.location,
-                  style: const TextStyle(color: Colors.white54, fontSize: 12),
+                  style: const TextStyle(color: Colors.white54, fontSize: 11),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
 
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       '₹${item.pg.rent}/mo',
-                      style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
+                      style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800),
                     ),
                     Text(
                       '📍 ${item.distance.toStringAsFixed(1)} km away',
-                      style: const TextStyle(color: Colors.white70, fontSize: 11),
+                      style: const TextStyle(color: Colors.white70, fontSize: 10),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
 
-                // Commute Travel Times (Point 3)
+                // Commute Travel Times Row (Point 12)
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: const Color(0xFF0F1225),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: const Color(0xFF1B2048)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildTravelTimeRow('🚶', '$walkTime min walk'),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
                       _buildTravelTimeRow('🚲', '$bikeTime min bike'),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
                       _buildTravelTimeRow('🚗', '$driveTime min drive'),
                     ],
                   ),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 12),
 
-                // Nearby essentials quick display (Point 4)
+                // 13. Nearby essentials quick display
                 const Text(
                   'Nearby Essentials:',
                   style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 Wrap(
-                  spacing: 8,
+                  spacing: 6,
                   runSpacing: 4,
                   children: const [
-                    Text('🚇 Metro', style: TextStyle(color: Colors.white60, fontSize: 10)),
-                    Text('🚌 Bus Stop', style: TextStyle(color: Colors.white60, fontSize: 10)),
-                    Text('🛒 Grocery', style: TextStyle(color: Colors.white60, fontSize: 10)),
-                    Text('🏥 Hospital', style: TextStyle(color: Colors.white60, fontSize: 10)),
-                    Text('🍽 Resto', style: TextStyle(color: Colors.white60, fontSize: 10)),
-                    Text('☕ Café', style: TextStyle(color: Colors.white60, fontSize: 10)),
-                    Text('🏧 ATM', style: TextStyle(color: Colors.white60, fontSize: 10)),
-                    Text('💊 Pharmacy', style: TextStyle(color: Colors.white60, fontSize: 10)),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                const Row(
-                  children: [
-                    Icon(Icons.map_outlined, color: Color(0xFF8C88FF), size: 12),
-                    SizedBox(width: 4),
-                    Text('Interactive Map view available in details', style: TextStyle(color: Colors.white38, fontSize: 9)),
+                    Text('🚇 Metro (450m)', style: TextStyle(color: Colors.white38, fontSize: 9)),
+                    Text('🚌 Bus (200m)', style: TextStyle(color: Colors.white38, fontSize: 9)),
+                    Text('🛒 Grocery (150m)', style: TextStyle(color: Colors.white38, fontSize: 9)),
+                    Text('🏥 Hospital (1.2km)', style: TextStyle(color: Colors.white38, fontSize: 9)),
+                    Text('🍽 Resto (100m)', style: TextStyle(color: Colors.white38, fontSize: 9)),
+                    Text('☕ Café (80m)', style: TextStyle(color: Colors.white38, fontSize: 9)),
                   ],
                 ),
                 const SizedBox(height: 12),
 
-                // Dynamic Why recommended matches checklist (Points 1 & 3)
+                // 11. Explain Why Recommended using CHIPS
                 const Text(
-                  'Why we recommended this:',
-                  style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                  'Why this PG?',
+                  style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 6),
-                ...item.matches.take(3).map((match) => Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.check_circle_outline_rounded, color: Color(0xFF4ADE80), size: 14),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              match,
-                              style: const TextStyle(color: Colors.white70, fontSize: 11),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )),
-                if (item.mismatches.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  ...item.mismatches.take(2).map((mismatch) => Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.cancel_outlined, color: Color(0xFFF87171), size: 14),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                mismatch,
-                                style: const TextStyle(color: Color(0xFFFFA1A1), fontSize: 11, fontWeight: FontWeight.w500),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )),
-                ],
-                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    ...item.matches.take(3).map((match) => _buildStatusChip(match, isMatch: true)),
+                    ...item.mismatches.take(2).map((mismatch) => _buildStatusChip(mismatch, isMatch: false)),
+                  ],
+                ),
+                const SizedBox(height: 14),
 
                 // View Details Button
                 ElevatedButton(
@@ -1104,11 +1068,11 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   style: ElevatedButton.styleFrom(
                     foregroundColor: Colors.white,
                     backgroundColor: const Color(0xFF6F5CFF),
-                    minimumSize: const Size.fromHeight(42),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    minimumSize: const Size.fromHeight(38),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     elevation: 0,
                   ),
-                  child: const Text('View Details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  child: const Text('View Details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                 ),
               ],
             ),
@@ -1118,12 +1082,39 @@ class _ResultsScreenState extends State<ResultsScreen> {
     );
   }
 
+  Widget _buildStatusChip(String label, {required bool isMatch}) {
+    final color = isMatch ? const Color(0xFF4ADE80) : const Color(0xFFEF4444);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isMatch ? Icons.check : Icons.close,
+            color: color,
+            size: 10,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTravelTimeRow(String emoji, String text) {
     return Row(
       children: [
-        Text(emoji, style: const TextStyle(fontSize: 13)),
+        Text(emoji, style: const TextStyle(fontSize: 12)),
         const SizedBox(width: 8),
-        Text(text, style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600)),
+        Text(text, style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)),
       ],
     );
   }

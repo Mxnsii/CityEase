@@ -7,8 +7,8 @@ import '../data/area_suggestions.dart';
 import '../models/survey_criteria.dart';
 import '../services/google_places_service.dart';
 import '../utils/google_api_keys.dart';
+import 'ai_loading_screen.dart';
 import 'office_map_screen.dart';
-import 'results_screen.dart';
 
 class ChatOnboardingScreen extends StatefulWidget {
   const ChatOnboardingScreen({super.key});
@@ -325,7 +325,7 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
     await _savePreferencesToStorage();
     final shouldReset = await navigator.push<bool>(
       MaterialPageRoute(
-        builder: (_) => ResultsScreen(criteria: criteria),
+        builder: (_) => AiLoadingScreen(criteria: criteria),
       ),
     );
 
@@ -408,11 +408,12 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
                 child: Stack(
                   children: [
                     ListView.builder(
-                      padding: const EdgeInsets.only(bottom: 220),
+                      reverse: true,
+                      padding: const EdgeInsets.only(bottom: 220, top: 16),
                       physics: const BouncingScrollPhysics(),
                       itemCount: _messages.length,
                       itemBuilder: (context, index) {
-                        final message = _messages[index];
+                        final message = _messages[_messages.length - 1 - index];
                         final isBot = message['sender'] == 'bot';
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 16),
