@@ -89,11 +89,9 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
       return;
     }
 
+    // 1. Instant case-insensitive substring search matching ANY location containing the text
     final suggestions = areaSuggestions
-        .where((area) {
-          final normalized = area.toLowerCase();
-          return normalized.startsWith(typed) || normalized.contains(' $typed');
-        })
+        .where((area) => area.toLowerCase().contains(typed))
         .toList();
 
     setState(() {
@@ -101,6 +99,7 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
       _localSuggestions = suggestions;
     });
 
+    // 2. Fetch from Google Places API if configured
     final results = await _placesService.autocomplete(value);
     if (!mounted) return;
     setState(() {
@@ -227,7 +226,20 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
   }
 
   LatLng _coordsForArea(String area) {
+    // 1. Check coordinates map from areaSuggestions
+    if (areaCoordinates.containsKey(area)) {
+      return areaCoordinates[area]!;
+    }
+    
+    // 2. Perform case-insensitive search in keys
     final query = area.toLowerCase();
+    for (var entry in areaCoordinates.entries) {
+      if (entry.key.toLowerCase().contains(query) || query.contains(entry.key.toLowerCase())) {
+        return entry.value;
+      }
+    }
+    
+    // 3. Fallback logic
     if (query.contains('koramangala')) return const LatLng(12.9352, 77.6245);
     if (query.contains('indiranagar')) return const LatLng(12.9719, 77.6412);
     if (query.contains('whitefield')) return const LatLng(12.9690, 77.7493);
@@ -243,7 +255,6 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
     if (query.contains('pune')) return const LatLng(18.5204, 73.8567);
     if (query.contains('connaught place') || query.contains('cp')) return const LatLng(28.6315, 77.2167);
     if (query.contains('bits pilani')) return const LatLng(28.3639, 75.5880);
-    if (query.contains('bits goa')) return const LatLng(15.3919, 73.8782);
     if (query.contains('bits hyderabad')) return const LatLng(17.5449, 78.5717);
     return const LatLng(20.5937, 78.9629);
   }
@@ -301,9 +312,8 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
         builder: (_) => ResultsScreen(criteria: criteria),
       ),
     );
-    
+
     if (shouldReset == true) {
-      // Reset state to ask questions again when returning from an empty state
       setState(() {
         _currentStep = 0;
         _messages.clear();
@@ -332,6 +342,7 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            // Header bar
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
               child: Row(
@@ -340,63 +351,95 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
-                      Text('CityEase AI',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          )),
+                      Text(
+                        'CityEase AI',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
                       SizedBox(height: 6),
-                      Text('Let\'s find your perfect neighborhood',
-                          style: TextStyle(color: Colors.white70, fontSize: 14)),
+                      Text(
+                        'Let\'s find your perfect stay stay',
+                        style: TextStyle(color: Colors.white60, fontSize: 13),
+                      ),
                     ],
                   ),
-                  const Icon(Icons.location_city, color: Color(0xFFE3D8FF), size: 28),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF6F5CFF).withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.forum_rounded, color: Color(0xFF8C88FF), size: 24),
+                  ),
                 ],
               ),
             ),
+
+            // Main chat container
             Expanded(
               child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-                padding: const EdgeInsets.all(18),
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF12162D),
-                  borderRadius: BorderRadius.circular(28),
-                  border: Border.all(color: const Color(0xFF2B3052)),
+                  color: const Color(0xFF11142B),
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(color: const Color(0xFF20254D)),
                 ),
                 child: Stack(
                   children: [
                     ListView.builder(
                       padding: const EdgeInsets.only(bottom: 220),
+                      physics: const BouncingScrollPhysics(),
                       itemCount: _messages.length,
                       itemBuilder: (context, index) {
                         final message = _messages[index];
                         final isBot = message['sender'] == 'bot';
                         return Padding(
-                          padding: const EdgeInsets.only(bottom: 14),
+                          padding: const EdgeInsets.only(bottom: 16),
                           child: Align(
-                            alignment:
-                                isBot ? Alignment.centerLeft : Alignment.centerRight,
+                            alignment: isBot ? Alignment.centerLeft : Alignment.centerRight,
                             child: Container(
-                              constraints: const BoxConstraints(maxWidth: 320),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 14),
+                              constraints: const BoxConstraints(maxWidth: 300),
+                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
                               decoration: BoxDecoration(
-                                color: isBot
-                                    ? const Color(0xFF171B3B)
-                                    : const Color(0xFF4D3BFF),
+                                gradient: isBot
+                                    ? const LinearGradient(
+                                        colors: [Color(0xFF1D2248), Color(0xFF131732)],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      )
+                                    : const LinearGradient(
+                                        colors: [Color(0xFF6F5CFF), Color(0xFF5038FF)],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                border: isBot
+                                    ? Border.all(color: const Color(0xFF2E356A).withValues(alpha: 0.4))
+                                    : null,
                                 borderRadius: BorderRadius.only(
-                                  topLeft: const Radius.circular(20),
-                                  topRight: const Radius.circular(20),
-                                  bottomLeft: Radius.circular(isBot ? 4 : 20),
-                                  bottomRight: Radius.circular(isBot ? 20 : 4),
+                                  topLeft: const Radius.circular(24),
+                                  topRight: const Radius.circular(24),
+                                  bottomLeft: Radius.circular(isBot ? 6 : 24),
+                                  bottomRight: Radius.circular(isBot ? 24 : 6),
                                 ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.15),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
                               ),
                               child: Text(
                                 message['text']!,
                                 style: TextStyle(
-                                  color: isBot ? Colors.white70 : Colors.white,
+                                  color: isBot ? Colors.white.withValues(alpha: 0.85) : Colors.white,
                                   fontSize: 15,
+                                  height: 1.4,
                                 ),
                               ),
                             ),
@@ -404,6 +447,8 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
                         );
                       },
                     ),
+
+                    // Inputs & Autocomplete Dropdowns
                     Align(
                       alignment: Alignment.bottomCenter,
                       child: Column(
@@ -417,66 +462,63 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
                               ),
                             if (_placePredictions.isNotEmpty || _localSuggestions.isNotEmpty)
                               ConstrainedBox(
-                                constraints: const BoxConstraints(maxHeight: 220),
+                                constraints: const BoxConstraints(maxHeight: 200),
                                 child: Container(
-                                  margin: const EdgeInsets.only(bottom: 10),
-                                  padding: const EdgeInsets.all(12),
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF10142A),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(color: const Color(0xFF2D3060)),
+                                    color: const Color(0xFF0F1225).withValues(alpha: 0.95),
+                                    borderRadius: BorderRadius.circular(22),
+                                    border: Border.all(color: const Color(0xFF262C54)),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.35),
+                                        blurRadius: 15,
+                                      ),
+                                    ],
                                   ),
                                   child: SingleChildScrollView(
+                                    physics: const BouncingScrollPhysics(),
                                     child: Column(
                                       children: [
-                                        ..._placePredictions
-                                            .map((prediction) => InkWell(
-                                                  onTap: () => _selectOfficePrediction(prediction),
-                                                  child: Padding(
-                                                    padding: const EdgeInsets.symmetric(vertical: 10),
-                                                    child: Row(
-                                                      children: [
-                                                        const Icon(Icons.location_on,
-                                                            size: 18,
-                                                            color: Color(0xFF8C88FF)),
-                                                        const SizedBox(width: 12),
-                                                        Expanded(
-                                                          child: Text(
-                                                            prediction.description ?? '',
-                                                            style: const TextStyle(
-                                                              color: Colors.white,
-                                                              fontSize: 14,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ],
+                                        ..._placePredictions.map((prediction) => InkWell(
+                                              onTap: () => _selectOfficePrediction(prediction),
+                                              borderRadius: BorderRadius.circular(12),
+                                              child: Padding(
+                                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                                child: Row(
+                                                  children: [
+                                                    const Icon(Icons.location_on, size: 18, color: Color(0xFF8C88FF)),
+                                                    const SizedBox(width: 12),
+                                                    Expanded(
+                                                      child: Text(
+                                                        prediction.description ?? '',
+                                                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                                                      ),
                                                     ),
-                                                  ),
-                                                )),
-                                        ..._localSuggestions
-                                            .map((suggestion) => InkWell(
-                                                  onTap: () => _selectLocalSuggestion(suggestion),
-                                                  child: Padding(
-                                                    padding: const EdgeInsets.symmetric(vertical: 10),
-                                                    child: Row(
-                                                      children: [
-                                                        const Icon(Icons.search,
-                                                            size: 18,
-                                                            color: Color(0xFF8C88FF)),
-                                                        const SizedBox(width: 12),
-                                                        Expanded(
-                                                          child: Text(
-                                                            suggestion,
-                                                            style: const TextStyle(
-                                                              color: Colors.white,
-                                                              fontSize: 14,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ],
+                                                  ],
+                                                ),
+                                              ),
+                                            )),
+                                        ..._localSuggestions.map((suggestion) => InkWell(
+                                              onTap: () => _selectLocalSuggestion(suggestion),
+                                              borderRadius: BorderRadius.circular(12),
+                                              child: Padding(
+                                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                                child: Row(
+                                                  children: [
+                                                    const Icon(Icons.search, size: 18, color: Color(0xFF8C88FF)),
+                                                    const SizedBox(width: 12),
+                                                    Expanded(
+                                                      child: Text(
+                                                        suggestion,
+                                                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                                                      ),
                                                     ),
-                                                  ),
-                                                )),
+                                                  ],
+                                                ),
+                                              ),
+                                            )),
                                       ],
                                     ),
                                   ),
@@ -485,17 +527,22 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
                           ],
                           if (currentOptions.isNotEmpty) ...[
                             SizedBox(
-                              height: 50,
+                              height: 42,
                               child: ListView.separated(
                                 scrollDirection: Axis.horizontal,
                                 itemCount: currentOptions.length,
-                                separatorBuilder: (_, _) => const SizedBox(width: 12),
+                                separatorBuilder: (_, _) => const SizedBox(width: 10),
                                 itemBuilder: (context, index) {
                                   final option = currentOptions[index];
                                   return ActionChip(
-                                    label: Text(option,
-                                        style: const TextStyle(color: Colors.white)),
-                                    backgroundColor: const Color(0xFF1D2243),
+                                    label: Text(
+                                      option,
+                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                                    ),
+                                    backgroundColor: const Color(0xFF161A36),
+                                    side: const BorderSide(color: Color(0xFF333966)),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                    elevation: 2,
                                     onPressed: () => _handleReply(option),
                                   );
                                 },
@@ -505,12 +552,12 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
                           ],
                           Container(
                             decoration: BoxDecoration(
-                              color: const Color(0xFF10142A),
-                              borderRadius: BorderRadius.circular(22),
-                              border: Border.all(color: const Color(0xFF2D3161)),
+                              color: const Color(0xFF0F1225),
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(color: const Color(0xFF262C54)),
                             ),
-                            margin: const EdgeInsets.all(4),
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
                             child: Row(
                               children: [
                                 Expanded(
@@ -524,7 +571,7 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
                                       hintText: currentKey == 'officeArea'
                                           ? 'Search city, landmark, or neighborhood...'
                                           : 'Type your answer...',
-                                      hintStyle: const TextStyle(color: Colors.white38),
+                                      hintStyle: const TextStyle(color: Colors.white38, fontSize: 14),
                                     ),
                                     onChanged: currentKey == 'officeArea'
                                         ? _onOfficeSearchChanged
@@ -532,9 +579,15 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
                                     onSubmitted: (_) => _sendCustomAnswer(),
                                   ),
                                 ),
-                                IconButton(
-                                  icon: const Icon(Icons.send, color: Color(0xFF8C88FF)),
-                                  onPressed: _sendCustomAnswer,
+                                Container(
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF6F5CFF),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: IconButton(
+                                    icon: const Icon(Icons.send_rounded, color: Colors.white, size: 18),
+                                    onPressed: _sendCustomAnswer,
+                                  ),
                                 ),
                               ],
                             ),
@@ -554,8 +607,10 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
                                     padding: const EdgeInsets.symmetric(vertical: 14),
                                   ),
                                   onPressed: _finishConversation,
-                                  child: const Text('See AI matches + nearby PG stays',
-                                      style: TextStyle(fontSize: 16)),
+                                  child: const Text(
+                                    'See AI matches + nearby PG stays',
+                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                  ),
                                 ),
                               ),
                             ),

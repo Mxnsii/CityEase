@@ -10,6 +10,8 @@ class PGListing {
   final String vibe;
   final double lat;
   final double lng;
+  final String imageUrl;
+  final List<String> amenities;
 
   const PGListing({
     required this.name,
@@ -23,5 +25,7 @@ class PGListing {
     required this.vibe,
     required this.lat,
     required this.lng,
+    required this.imageUrl,
+    required this.amenities,
   });
 }
