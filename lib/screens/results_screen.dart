@@ -7,6 +7,7 @@ import '../models/survey_criteria.dart';
 import '../utils/geo_utils.dart';
 import 'compare_screen.dart';
 import 'pg_details_screen.dart';
+import 'saved_pgs_screen.dart';
 
 class ResultsScreen extends StatefulWidget {
   final SurveyCriteria criteria;
@@ -522,6 +523,23 @@ class _ResultsScreenState extends State<ResultsScreen> {
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
           onPressed: () => Navigator.of(context).pop(true),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.favorite_rounded, color: Colors.redAccent),
+            tooltip: 'Saved Stays',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => SavedPgsScreen(
+                    officeLat: widget.criteria.officeLat,
+                    officeLng: widget.criteria.officeLng,
+                    officeArea: widget.criteria.officeArea,
+                  ),
+                ),
+              ).then((_) => _loadFavorites());
+            },
+          ),
+        ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: _selectedComparePgs.isEmpty
@@ -966,41 +984,64 @@ class _ResultsScreenState extends State<ResultsScreen> {
                       style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
                     ),
                     Text(
-                      '${item.distance.toStringAsFixed(1)} km from office',
+                      '📍 ${item.distance.toStringAsFixed(1)} km away',
                       style: const TextStyle(color: Colors.white70, fontSize: 11),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
 
-                // Commute Travel Times Row (Point 4)
+                // Commute Travel Times (Point 3)
                 Container(
-                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: const Color(0xFF0F1225),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: const Color(0xFF1B2048)),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildTravelTimeCol(Icons.directions_walk_rounded, '${walkTime}m walk'),
-                      _buildTravelTimeCol(Icons.directions_bike_rounded, '${bikeTime}m bike'),
-                      _buildTravelTimeCol(Icons.directions_car_rounded, '${driveTime}m drive'),
+                      _buildTravelTimeRow('🚶', '$walkTime min walk'),
+                      const SizedBox(height: 6),
+                      _buildTravelTimeRow('🚲', '$bikeTime min bike'),
+                      const SizedBox(height: 6),
+                      _buildTravelTimeRow('🚗', '$driveTime min drive'),
                     ],
                   ),
                 ),
                 const SizedBox(height: 14),
 
-                // Nearby essentials quick display (Point 11)
-                Row(
+                // Nearby essentials quick display (Point 4)
+                const Text(
+                  'Nearby Essentials:',
+                  style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
                   children: const [
-                    Text('🚇 Metro · 🚌 Bus · 🍴 Food · 🏥 Clinic', style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold)),
-                    Spacer(),
-                    Text('Nearby', style: TextStyle(color: Color(0xFF8C88FF), fontSize: 10, fontWeight: FontWeight.bold)),
+                    Text('🚇 Metro', style: TextStyle(color: Colors.white60, fontSize: 10)),
+                    Text('🚌 Bus Stop', style: TextStyle(color: Colors.white60, fontSize: 10)),
+                    Text('🛒 Grocery', style: TextStyle(color: Colors.white60, fontSize: 10)),
+                    Text('🏥 Hospital', style: TextStyle(color: Colors.white60, fontSize: 10)),
+                    Text('🍽 Resto', style: TextStyle(color: Colors.white60, fontSize: 10)),
+                    Text('☕ Café', style: TextStyle(color: Colors.white60, fontSize: 10)),
+                    Text('🏧 ATM', style: TextStyle(color: Colors.white60, fontSize: 10)),
+                    Text('💊 Pharmacy', style: TextStyle(color: Colors.white60, fontSize: 10)),
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 4),
+                const Row(
+                  children: [
+                    Icon(Icons.map_outlined, color: Color(0xFF8C88FF), size: 12),
+                    SizedBox(width: 4),
+                    Text('Interactive Map view available in details', style: TextStyle(color: Colors.white38, fontSize: 9)),
+                  ],
+                ),
+                const SizedBox(height: 12),
 
                 // Dynamic Why recommended matches checklist (Points 1 & 3)
                 const Text(
@@ -1077,12 +1118,12 @@ class _ResultsScreenState extends State<ResultsScreen> {
     );
   }
 
-  Widget _buildTravelTimeCol(IconData icon, String text) {
+  Widget _buildTravelTimeRow(String emoji, String text) {
     return Row(
       children: [
-        Icon(icon, color: const Color(0xFF8C88FF), size: 14),
-        const SizedBox(width: 4),
-        Text(text, style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)),
+        Text(emoji, style: const TextStyle(fontSize: 13)),
+        const SizedBox(width: 8),
+        Text(text, style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600)),
       ],
     );
   }
