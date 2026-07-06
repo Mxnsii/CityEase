@@ -1696,9 +1696,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         title: const Text('CityEase AI Matches'), // 20. Human wording
-        foregroundColor: Colors.white,
+        foregroundColor: Colors.black87,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
           onPressed: () => Navigator.of(context).pop(false),
