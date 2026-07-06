@@ -1565,21 +1565,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
   }
 
   Widget _buildHeroSearchSection(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      margin: const EdgeInsets.only(bottom: 10, top: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
+    return Padding(
+      padding: const EdgeInsets.only(top: 6, bottom: 10),
       child: InkWell(
         onTap: () => _showAssistantPlaceSearch(context),
         borderRadius: BorderRadius.circular(18),
