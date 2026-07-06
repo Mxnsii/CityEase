@@ -1564,44 +1564,6 @@ class _ResultsScreenState extends State<ResultsScreen> {
     );
   }
 
-  Widget _buildHeroSearchSection(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 6, bottom: 10),
-      child: InkWell(
-        onTap: () => _showAssistantPlaceSearch(context),
-        borderRadius: BorderRadius.circular(18),
-        child: Container(
-          height: 54,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.grey.shade300, width: 1.1),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.search_rounded, color: AppTheme.accentColorLight, size: 22),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Search a new office area',
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
-                ),
-              ),
-              Icon(Icons.location_on_outlined, color: Colors.grey.shade500, size: 20),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildPreferencesCard() {
     return SizedBox(
@@ -1959,8 +1921,6 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildHeroSearchSection(context),
-                      const SizedBox(height: 8),
                       _buildPreferencesCard(),
                       const SizedBox(height: 10),
                       _buildHubTip(),
