@@ -1232,6 +1232,85 @@ class _ResultsScreenState extends State<ResultsScreen> {
     );
   }
 
+  void _showFloatingActionMenu() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF11142B),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Quick actions',
+                style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+              ListTile(
+                leading: const Icon(Icons.psychology_outlined, color: AppTheme.accentColorLight),
+                title: const Text('AI Assistant', style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _showAiAssistantPanel();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.search, color: AppTheme.accentColorLight),
+                title: const Text('Search New Area', style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _showAssistantPlaceSearch(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.favorite_rounded, color: Colors.redAccent),
+                title: const Text('Saved PGs', style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => SavedPgsScreen(
+                        officeLat: _currentOfficeLat,
+                        officeLng: _currentOfficeLng,
+                        officeArea: _currentOfficeArea,
+                      ),
+                    ),
+                  ).then((_) => _loadFavorites());
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.compare_arrows_rounded, color: AppTheme.accentColorLight),
+                title: const Text('Compare Selected', style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  if (_selectedComparePgs.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Select a few PGs first to compare.')),
+                    );
+                    return;
+                  }
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => CompareScreen(
+                        pgs: _selectedComparePgs,
+                        officeLat: _currentOfficeLat,
+                        officeLng: _currentOfficeLng,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   // 6. Floating AI Assistant Chat panel trigger sheet (Point 6)
   void _showAiAssistantPanel() {
     showModalBottomSheet(
@@ -1472,6 +1551,81 @@ class _ResultsScreenState extends State<ResultsScreen> {
             style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildHeroSearchSection(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 14, top: 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Find Premium PGs Near You',
+            style: TextStyle(
+              color: Colors.grey.shade900,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'AI-powered recommendations tailored to your lifestyle.',
+            style: TextStyle(
+              color: Colors.grey.shade700,
+              fontSize: 13,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 14),
+          InkWell(
+            onTap: () => _showAssistantPlaceSearch(context),
+            borderRadius: BorderRadius.circular(18),
+            child: Container(
+              height: 54,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: Colors.grey.shade300, width: 1.1),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.search_rounded, color: AppTheme.accentColorLight, size: 22),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Search a new office area',
+                      style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                    ),
+                  ),
+                  Icon(Icons.location_on_outlined, color: Colors.grey.shade500, size: 20),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1721,45 +1875,25 @@ class _ResultsScreenState extends State<ResultsScreen> {
           ),
         ],
       ),
-      // 6. Floating AI Assistant trigger button
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppTheme.accentColor,
-        tooltip: 'AI Assistant',
-        onPressed: () {
-          showModalBottomSheet(
-            context: context,
-            backgroundColor: const Color(0xFF11142B),
-            shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(18))),
-            builder: (context) {
-              return Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ListTile(
-                      leading: const Icon(Icons.psychology_outlined, color: AppTheme.accentColorLight),
-                      title: const Text('Open AI Assistant', style: TextStyle(color: Colors.white)),
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        _showAiAssistantPanel();
-                      },
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.search, color: AppTheme.accentColorLight),
-                      title: const Text('New Search (select area)', style: TextStyle(color: Colors.white)),
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        _showAssistantPlaceSearch(context);
-                      },
-                    ),
-                    const SizedBox(height: 6),
-                  ],
-                ),
-              );
-            },
-          );
-        },
-        child: const Icon(Icons.psychology, color: Colors.white),
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          gradient: AppTheme.primaryGradient,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.accentColor.withValues(alpha: 0.3),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: FloatingActionButton(
+          onPressed: _showFloatingActionMenu,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          tooltip: 'Quick actions',
+          child: const Icon(Icons.auto_awesome_rounded, color: Colors.white),
+        ),
       ),
       bottomNavigationBar: _selectedComparePgs.isEmpty
           ? null
@@ -1848,62 +1982,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Slim sticky header to fill the top white gap — now light background with black text
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        margin: const EdgeInsets.only(bottom: 12, top: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppTheme.borderTranslucent),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.search, color: AppTheme.accentColorLight, size: 16),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Find premium PGs near ${_currentOfficeArea} • ${_exactMatches.isNotEmpty ? _exactMatches.length : _fallbackMatches.length} results',
-                                style: const TextStyle(color: Colors.black87, fontSize: 13, fontWeight: FontWeight.bold),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            GestureDetector(
-                              onTap: _showAiAssistantPanel,
-                              child: Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.accentColor,
-                                  borderRadius: BorderRadius.circular(10),
-                                  boxShadow: AppTheme.glowShadow,
-                                ),
-                                child: const Icon(Icons.psychology, color: Colors.white, size: 16),
-                              ),
-                            )
-                          ],
-                        ),
-                      ),
-                        GlassCard(
-                        borderRadius: AppTheme.cardRadius,
-                        padding: const EdgeInsets.all(16),
-                        margin: const EdgeInsets.only(bottom: 14),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Search smarter with a premium dark AI interface.',
-                              style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Discover the best PGs near ${_currentOfficeArea} without the noise.',
-                              style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
-                            ),
-                          ],
-                        ),
-                      ),
+                      _buildHeroSearchSection(context),
                       _buildPreferencesCard(),
                       _buildHubTip(),
                       const SizedBox(height: 14),
