@@ -509,42 +509,56 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
   // 19. Recommendation narrowdown sequence
   Widget _buildNarrowdownTimeline() {
-    return GlassCard(
-      borderRadius: AppTheme.cardRadius,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'HOW THE AI SCORING SYSTEM NARROWED IT DOWN',
-            style: TextStyle(color: Colors.white38, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.8),
-          ),
-          const SizedBox(height: 12),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            child: Row(
+    final stages = [
+      _buildNarrowdownNode('Searched 5,000+ stays', 'Pool', AppTheme.accentColorLight),
+      _buildNarrowdownNode('Budget Compat.', '98 Left', AppTheme.accentColor),
+      _buildNarrowdownNode('Gender Rules', '42 Left', const Color(0xFF10B981)),
+      _buildNarrowdownNode('Food Options', '24 Left', const Color(0xFFF59E0B)),
+      _buildNarrowdownNode('Proximity limits', '${_exactMatches.isNotEmpty ? _exactMatches.length : _fallbackMatches.length} Matches', const Color(0xFFEF4444)),
+    ];
+
+    return SizedBox(
+      width: double.infinity,
+      child: GlassCard(
+        borderRadius: AppTheme.cardRadius,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'HOW THE AI SCORING SYSTEM NARROWED IT DOWN',
+              style: TextStyle(color: Colors.white38, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.8),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                _buildNarrowdownNode('Searched 5,000+ stays', 'Pool', AppTheme.accentColorLight),
-                _buildNarrowdownArrow(),
-                _buildNarrowdownNode('Budget Compat.', '98 Left', AppTheme.accentColor),
-                _buildNarrowdownArrow(),
-                _buildNarrowdownNode('Gender Rules', '42 Left', const Color(0xFF10B981)),
-                _buildNarrowdownArrow(),
-                _buildNarrowdownNode('Food Options', '24 Left', const Color(0xFFF59E0B)),
-                _buildNarrowdownArrow(),
-                _buildNarrowdownNode('Proximity limits', '${_exactMatches.isNotEmpty ? _exactMatches.length : _fallbackMatches.length} Matches', const Color(0xFFEF4444)),
+                for (int index = 0; index < stages.length; index++) ...[
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(minWidth: 120, maxWidth: 180),
+                    child: stages[index],
+                  ),
+                  if (index < stages.length - 1)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 2),
+                      child: Icon(Icons.chevron_right_rounded, color: Colors.white24, size: 18),
+                    ),
+                ],
               ],
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildNarrowdownNode(String title, String countText, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
@@ -561,17 +575,11 @@ class _ResultsScreenState extends State<ResultsScreen> {
     );
   }
 
-  Widget _buildNarrowdownArrow() {
-    return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 8),
-      child: Icon(Icons.chevron_right_rounded, color: Colors.white24),
-    );
-  }
-
   // 2. Dynamic AI Recommendation Summary Card
   Widget _buildAiSummaryHeader() {
-    return Container(
+    return SizedBox(
       width: double.infinity,
+      child: Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
@@ -612,6 +620,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
             style: const TextStyle(color: AppTheme.accentColorLight, fontSize: 13, fontWeight: FontWeight.bold),
           ),
         ],
+      ),
       ),
     );
   }
@@ -1559,7 +1568,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
-      margin: const EdgeInsets.only(bottom: 14, top: 6),
+      margin: const EdgeInsets.only(bottom: 10, top: 6),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -1631,30 +1640,34 @@ class _ResultsScreenState extends State<ResultsScreen> {
   }
 
   Widget _buildPreferencesCard() {
-    return GlassCard(
-      borderRadius: AppTheme.cardRadius,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Search Preferences',
-            style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _buildPrefChip('📍 ${_currentOfficeLocation.split(',').first}'),
-              _buildPrefChip('💰 ${widget.criteria.budget}'),
-              _buildPrefChip('👩 ${widget.criteria.gender.replaceAll(' Only', '')}'),
-              _buildPrefChip('🍛 ${widget.criteria.foodIncluded ? "Food Incl." : "No Food"}'),
-              _buildPrefChip('❄️ ${widget.criteria.acRequired ? "AC Required" : "Non-AC Fine"}'),
-              _buildPrefChip('🚗 ${widget.criteria.distancePref.split(' ').first}'),
-            ],
-          ),
-        ],
+    return SizedBox(
+      width: double.infinity,
+      child: GlassCard(
+        borderRadius: AppTheme.cardRadius,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Search Preferences',
+              style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.start,
+              children: [
+                _buildPrefChip('📍 ${_currentOfficeLocation.split(',').first}'),
+                _buildPrefChip('💰 ${widget.criteria.budget}'),
+                _buildPrefChip('👩 ${widget.criteria.gender.replaceAll(' Only', '')}'),
+                _buildPrefChip('🍛 ${widget.criteria.foodIncluded ? "Food Incl." : "No Food"}'),
+                _buildPrefChip('❄️ ${widget.criteria.acRequired ? "AC Required" : "Non-AC Fine"}'),
+                _buildPrefChip('🚗 ${widget.criteria.distancePref.split(' ').first}'),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1983,17 +1996,19 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildHeroSearchSection(context),
+                      const SizedBox(height: 8),
                       _buildPreferencesCard(),
+                      const SizedBox(height: 10),
                       _buildHubTip(),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 10),
 
                       // 14. Journey timeline
                       _buildJourneyTimeline(),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
 
                       // 19. Narrowdown timeline sequence
                       _buildNarrowdownTimeline(),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 10),
 
                       // 2. AI recommendation summary
                       _buildAiSummaryHeader(),
