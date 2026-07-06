@@ -92,9 +92,11 @@ class _AiLoadingScreenState extends State<AiLoadingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ThemeBackground(
-      showGlows: true,
-      child: SafeArea(
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: ThemeBackground(
+        showGlows: true,
+        child: SafeArea(
         child: Center(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 28),
@@ -251,6 +253,7 @@ class _AiLoadingScreenState extends State<AiLoadingScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
