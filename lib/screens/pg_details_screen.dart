@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -115,16 +116,27 @@ class _PgDetailsScreenState extends State<PgDetailsScreen> {
 
   Future<void> _toggleFavorite() async {
     final prefs = await SharedPreferences.getInstance();
+    final List<String> favoriteDetails = prefs.getStringList('favorite_pg_details') ?? [];
     setState(() {
       if (_isFavorite) {
         _favoritePgNames.remove(widget.pg.name);
+        favoriteDetails.removeWhere((jsonStr) {
+          try {
+            final decoded = json.decode(jsonStr);
+            return decoded['name'] == widget.pg.name;
+          } catch (_) {
+            return false;
+          }
+        });
         _isFavorite = false;
       } else {
         _favoritePgNames.add(widget.pg.name);
+        favoriteDetails.add(json.encode(widget.pg.toJson()));
         _isFavorite = true;
       }
     });
     await prefs.setStringList('favorite_pg_names', _favoritePgNames);
+    await prefs.setStringList('favorite_pg_details', favoriteDetails);
   }
 
   void _setupInitialMarkers() {

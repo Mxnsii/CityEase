@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../data/mock_pg_listings.dart';
 import '../models/pg_listing.dart';
 import '../utils/geo_utils.dart';
 import '../utils/app_theme.dart';
@@ -36,29 +36,22 @@ class _SavedPgsScreenState extends State<SavedPgsScreen> {
 
   Future<void> _loadSavedStays() async {
     final prefs = await SharedPreferences.getInstance();
-    final favoriteNames = prefs.getStringList('favorite_pg_names') ?? [];
+    final favoriteDetails = prefs.getStringList('favorite_pg_details') ?? [];
 
-    // Gather all potential sources
-    List<PGListing> allPossibleListings = [];
-    allPossibleListings.addAll(allPgListings);
-    
-    // Add dynamic ones near current office area
-    allPossibleListings.addAll(generateDynamicMockPgs(
-      widget.officeArea,
-      widget.officeLat,
-      widget.officeLng,
-    ));
-
-    // Filter unique matches
-    final Map<String, PGListing> uniqueStays = {};
-    for (var pg in allPossibleListings) {
-      if (favoriteNames.contains(pg.name)) {
-        uniqueStays[pg.name] = pg;
+    final List<PGListing> allPossibleListings = [];
+    for (var jsonStr in favoriteDetails) {
+      try {
+        final decoded = json.decode(jsonStr);
+        allPossibleListings.add(PGListing.fromJson(decoded));
+      } catch (e) {
+        if (kDebugMode) {
+          print('Error decoding saved stay: $e');
+        }
       }
     }
 
     final List<PGListingWithScore> savedStays = [];
-    for (var pg in uniqueStays.values) {
+    for (var pg in allPossibleListings) {
       final distance = GeoUtils.calculateDistanceKm(widget.officeLat, widget.officeLng, pg.lat, pg.lng);
       final commuteTime = GeoUtils.calculateCommuteMinutes(distance);
 

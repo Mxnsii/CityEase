@@ -5,7 +5,6 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_map/flutter_map.dart' as flutter_map;
 import 'package:latlong2/latlong.dart' as ll;
 
-import '../data/mock_pg_listings.dart';
 import '../models/pg_listing.dart';
 import '../models/survey_criteria.dart';
 import '../utils/geo_utils.dart';
@@ -177,11 +176,10 @@ class _ResultsScreenState extends State<ResultsScreen> {
         );
         _allFetchedRealPgs = fetched;
       } catch (e) {
-        _allFetchedRealPgs = generateDynamicMockPgs(
-          widget.criteria.officeArea,
-          widget.criteria.officeLat,
-          widget.criteria.officeLng,
-        );
+        if (kDebugMode) {
+          print('Error fetching real PGs: $e');
+        }
+        _allFetchedRealPgs = [];
       }
       if (mounted) {
         setState(() {
@@ -338,6 +336,15 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
     applySortRules(exactMatches);
     applySortRules(fallbacks);
+
+    if (kDebugMode) {
+      print('Number of PGs after filtering (exact matches): ${exactMatches.length}');
+      print('Number of PGs after filtering (fallbacks): ${fallbacks.length}');
+      print('Final ranked recommendations:');
+      for (var item in exactMatches) {
+        print('- ${item.pg.name} (Score: ${item.score}, Rent: ${item.pg.rent}, Distance: ${item.distance.toStringAsFixed(2)}km, Source: ${item.pg.source})');
+      }
+    }
 
     setState(() {
       _exactMatches = exactMatches;
