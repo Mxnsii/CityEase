@@ -95,7 +95,7 @@ class CityEaseApp extends StatelessWidget {
           thickness: 0.6,
         ),
         iconTheme: const IconThemeData(color: AppTheme.textSecondary),
-        pageTransitionsTheme: const PageTransitionsTheme(
+        pageTransitionsTheme: PageTransitionsTheme(
           builders: {
             TargetPlatform.android: CupertinoPageTransitionsBuilder(),
             TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
