@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/app_theme.dart';
 import 'results_screen.dart';
 
 class CompareScreen extends StatelessWidget {
@@ -53,7 +54,7 @@ class CompareScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF090B19),
+      backgroundColor: AppTheme.primaryBackground,
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.transparent,
@@ -145,8 +146,8 @@ class CompareScreen extends StatelessWidget {
     return Container(
       height: height,
       alignment: Alignment.centerLeft,
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFF1D2245), width: 1)),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: AppTheme.borderTranslucent, width: 1)),
       ),
       child: Text(
         label,
@@ -190,7 +191,7 @@ class CompareScreen extends StatelessWidget {
       width: 170,
       margin: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFF121632),
+        color: AppTheme.secondaryBackground,
         borderRadius: index == 0
             ? const BorderRadius.horizontal(left: Radius.circular(16))
             : index == pgs.length - 1
@@ -204,8 +205,8 @@ class CompareScreen extends StatelessWidget {
             height: 90,
             padding: const EdgeInsets.all(10),
             alignment: Alignment.center,
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: Color(0xFF1D2245))),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: AppTheme.borderTranslucent)),
             ),
             child: Text(
               item.pg.name,
@@ -220,8 +221,8 @@ class CompareScreen extends StatelessWidget {
           Container(
             height: 100,
             width: double.infinity,
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: Color(0xFF1D2245))),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: AppTheme.borderTranslucent)),
             ),
             child: Image.network(
               item.pg.imageUrl,
@@ -305,8 +306,8 @@ class CompareScreen extends StatelessWidget {
             height: 80,
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             alignment: Alignment.center,
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: Color(0xFF1D2245))),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: AppTheme.borderTranslucent)),
             ),
             child: Text(
               otherAmenities.isEmpty ? 'None' : otherAmenities,
@@ -330,18 +331,18 @@ class CompareScreen extends StatelessWidget {
       height: height,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: isBest ? const Color(0xFF163C25) : Colors.transparent,
+        color: isBest ? AppTheme.accentColor.withValues(alpha: 0.12) : Colors.transparent,
         border: Border(
-          bottom: const BorderSide(color: Color(0xFF1D2245)),
-          left: isBest ? const BorderSide(color: Color(0xFF34D399), width: 1.5) : BorderSide.none,
-          right: isBest ? const BorderSide(color: Color(0xFF34D399), width: 1.5) : BorderSide.none,
+          bottom: BorderSide(color: AppTheme.borderTranslucent),
+          left: isBest ? BorderSide(color: AppTheme.accentColorLight, width: 1.5) : BorderSide.none,
+          right: isBest ? BorderSide(color: AppTheme.accentColorLight, width: 1.5) : BorderSide.none,
         ),
       ),
       child: Text(
         value,
         textAlign: TextAlign.center,
         style: TextStyle(
-          color: isBest ? const Color(0xFF34D399) : Colors.white,
+          color: isBest ? AppTheme.accentColorLight : Colors.white,
           fontWeight: isBest ? FontWeight.w900 : FontWeight.w700,
           fontSize: 13,
         ),
@@ -353,12 +354,12 @@ class CompareScreen extends StatelessWidget {
     return Container(
       height: height,
       alignment: Alignment.center,
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFF1D2245))),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: AppTheme.borderTranslucent)),
       ),
       child: Icon(
         active ? Icons.check_circle_rounded : Icons.cancel_outlined,
-        color: active ? const Color(0xFF4ADE80) : const Color(0xFFEF4444).withValues(alpha: 0.5),
+        color: active ? const Color(0xFF4ADE80) : Colors.white24,
         size: 18,
       ),
     );

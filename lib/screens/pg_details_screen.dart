@@ -11,6 +11,7 @@ import '../models/pg_listing.dart';
 import '../services/google_places_service.dart';
 import '../utils/google_api_keys.dart';
 import '../utils/geo_utils.dart';
+import '../utils/app_theme.dart';
 
 class PgDetailsScreen extends StatefulWidget {
   final PGListing pg;
@@ -248,7 +249,7 @@ class _PgDetailsScreenState extends State<PgDetailsScreen> {
     );
 
     return Scaffold(
-      backgroundColor: const Color(0xFF090B19),
+      backgroundColor: AppTheme.primaryBackground,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -311,10 +312,10 @@ class _PgDetailsScreenState extends State<PgDetailsScreen> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF2A3159),
-                                    borderRadius: BorderRadius.circular(16),
+                                    color: AppTheme.accentColor.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(AppTheme.pillRadius),
                                   ),
-                                  child: const Text('Verified', style: TextStyle(color: Color(0xFF8C88FF), fontSize: 12, fontWeight: FontWeight.w600)),
+                                  child: const Text('Verified', style: TextStyle(color: AppTheme.accentColorLight, fontSize: 12, fontWeight: FontWeight.w600)),
                                 ),
                             ],
                           ),
@@ -347,9 +348,9 @@ class _PgDetailsScreenState extends State<PgDetailsScreen> {
                                 margin: const EdgeInsets.only(bottom: 10),
                                 padding: const EdgeInsets.all(14),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF11162D),
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: const Color(0xFF2D3161)),
+                                  color: AppTheme.cardBackground,
+                                  borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+                                  border: Border.all(color: AppTheme.borderTranslucent),
                                 ),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -365,7 +366,7 @@ class _PgDetailsScreenState extends State<PgDetailsScreen> {
                                     Column(
                                       crossAxisAlignment: CrossAxisAlignment.end,
                                       children: [
-                                        Text('₹${room['price']}/mo', style: const TextStyle(color: Color(0xFF8C88FF), fontSize: 15, fontWeight: FontWeight.bold)),
+                                        Text('₹${room['price']}/mo', style: const TextStyle(color: AppTheme.accentColor, fontSize: 15, fontWeight: FontWeight.bold)),
                                         const SizedBox(height: 4),
                                         Text(room['availability'], style: const TextStyle(color: Colors.greenAccent, fontSize: 11, fontWeight: FontWeight.bold)),
                                       ],
@@ -383,13 +384,13 @@ class _PgDetailsScreenState extends State<PgDetailsScreen> {
                             width: double.infinity,
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF11162D),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: const Color(0xFF2D3161)),
+                              color: AppTheme.cardBackground,
+                              borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+                              border: Border.all(color: AppTheme.borderTranslucent),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.nightlife, color: Color(0xFF8C88FF), size: 28),
+                                const Icon(Icons.nightlife, color: AppTheme.accentColorLight, size: 28),
                                 const SizedBox(width: 16),
                                 Expanded(
                                   child: Text(widget.pg.vibe, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)),
@@ -428,8 +429,9 @@ class _PgDetailsScreenState extends State<PgDetailsScreen> {
                                   margin: const EdgeInsets.only(bottom: 10),
                                   padding: const EdgeInsets.all(14),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF11162D),
-                                    borderRadius: BorderRadius.circular(16),
+                                    color: AppTheme.cardBackground,
+                                    borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+                                    border: Border.all(color: AppTheme.borderTranslucent),
                                   ),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -469,8 +471,9 @@ class _PgDetailsScreenState extends State<PgDetailsScreen> {
                                 return Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF191F45),
-                                    borderRadius: BorderRadius.circular(12),
+                                    color: AppTheme.secondaryBackground,
+                                    borderRadius: BorderRadius.circular(AppTheme.pillRadius),
+                                    border: Border.all(color: AppTheme.borderTranslucent),
                                   ),
                                   child: Text(amenity.name ?? 'Highlight', style: const TextStyle(color: Colors.white70, fontSize: 12)),
                                 );
@@ -539,9 +542,9 @@ class _PgDetailsScreenState extends State<PgDetailsScreen> {
                       margin: const EdgeInsets.all(16),
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF131732),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: const Color(0xFF222855)),
+                        color: AppTheme.secondaryBackground,
+                        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+                        border: Border.all(color: AppTheme.borderTranslucent),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -553,14 +556,23 @@ class _PgDetailsScreenState extends State<PgDetailsScreen> {
                           Row(
                             children: [
                               Expanded(
-                                child: ElevatedButton.icon(
-                                  onPressed: () {},
-                                  icon: const Icon(Icons.phone, size: 16),
-                                  label: const Text('Call Owner', style: TextStyle(fontWeight: FontWeight.bold)),
-                                  style: ElevatedButton.styleFrom(
-                                    foregroundColor: Colors.white,
-                                    backgroundColor: const Color(0xFF10B981),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                child: Container(
+                                  height: 42,
+                                  decoration: BoxDecoration(
+                                    gradient: AppTheme.primaryGradient,
+                                    borderRadius: BorderRadius.circular(AppTheme.pillRadius),
+                                    boxShadow: AppTheme.glowShadow,
+                                  ),
+                                  child: ElevatedButton.icon(
+                                    onPressed: () {},
+                                    icon: const Icon(Icons.phone, size: 16),
+                                    label: const Text('Call Owner', style: TextStyle(fontWeight: FontWeight.bold)),
+                                    style: ElevatedButton.styleFrom(
+                                      foregroundColor: Colors.white,
+                                      backgroundColor: Colors.transparent,
+                                      shadowColor: Colors.transparent,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.pillRadius)),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -572,8 +584,8 @@ class _PgDetailsScreenState extends State<PgDetailsScreen> {
                                   label: const Text('Send Message', style: TextStyle(fontWeight: FontWeight.bold)),
                                   style: OutlinedButton.styleFrom(
                                     foregroundColor: Colors.white,
-                                    side: const BorderSide(color: Colors.white30),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    side: BorderSide(color: AppTheme.borderTranslucent),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.pillRadius)),
                                   ),
                                 ),
                               ),
@@ -596,9 +608,9 @@ class _PgDetailsScreenState extends State<PgDetailsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF11162D),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        color: AppTheme.cardBackground,
+        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+        border: Border.all(color: AppTheme.borderTranslucent),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -617,16 +629,16 @@ class _PgDetailsScreenState extends State<PgDetailsScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF11162D),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFF2D3161)),
+          color: AppTheme.cardBackground,
+          borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+          border: Border.all(color: AppTheme.borderTranslucent),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(icon, size: 16, color: const Color(0xFF8C88FF)),
+                Icon(icon, size: 16, color: AppTheme.accentColorLight),
                 const SizedBox(width: 8),
                 Text(title, style: const TextStyle(color: Colors.white54, fontSize: 12)),
               ],

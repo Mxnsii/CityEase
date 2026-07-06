@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/survey_criteria.dart';
+import '../utils/app_theme.dart';
 import 'chat_onboarding_screen.dart';
 import 'results_screen.dart';
 
@@ -119,17 +120,17 @@ class _WelcomeScreenState extends State<WelcomeScreen>
           // 1. Cosmic Deep Gradient Background
           Container(
             decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFF040510), // Extremely dark cosmos
-                  Color(0xFF0C0E21), // Deep navy/midnight blue
-                  Color(0xFF161935), // Deep violet-indigo
-                  Color(0xFF221F47), // Soft purple near the horizon
-                ],
-                stops: [0.0, 0.4, 0.8, 1.0],
-              ),
+               gradient: LinearGradient(
+                 begin: Alignment.topCenter,
+                 end: Alignment.bottomCenter,
+                 colors: [
+                   AppTheme.primaryBackground,
+                   AppTheme.secondaryBackground,
+                   Color(0xFF1B2048),
+                   Color(0xFF2C2755),
+                 ],
+                 stops: [0.0, 0.4, 0.8, 1.0],
+               ),
             ),
           ),
 
@@ -200,7 +201,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                     scrollOffset: _animationController.value * _parallaxWidth,
                     repeatWidth: _parallaxWidth,
                     layerType: _SkylineLayer.background,
-                    color: const Color(0xFF1B1B3C).withValues(alpha: 0.55),
+                    color: AppTheme.cardBackground.withValues(alpha: 0.35),
                   ),
                 );
               },
@@ -217,7 +218,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                     scrollOffset: _animationController.value * _parallaxWidth * 2.2,
                     repeatWidth: _parallaxWidth,
                     layerType: _SkylineLayer.midground,
-                    color: const Color(0xFF262650).withValues(alpha: 0.75),
+                    color: AppTheme.cardBackground.withValues(alpha: 0.65),
                   ),
                 );
               },
@@ -234,7 +235,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                     scrollOffset: _animationController.value * _parallaxWidth * 4.0,
                     repeatWidth: _parallaxWidth,
                     layerType: _SkylineLayer.foreground,
-                    color: const Color(0xFF14162B),
+                    color: AppTheme.primaryBackground,
                   ),
                 );
               },
@@ -316,18 +317,12 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF121630).withValues(alpha: 0.65),
-                            borderRadius: BorderRadius.circular(30),
+                            color: AppTheme.cardBackground.withValues(alpha: 0.8),
+                            borderRadius: BorderRadius.circular(AppTheme.cardRadius),
                             border: Border.all(
-                              color: const Color(0xFF2E325A).withValues(alpha: 0.5),
+                              color: AppTheme.borderTranslucent,
                             ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.2),
-                                blurRadius: 40,
-                                offset: const Offset(0, 15),
-                              ),
-                            ],
+                            boxShadow: AppTheme.cardShadow,
                           ),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
@@ -361,16 +356,16 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                                 Container(
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF6F5CFF).withValues(alpha: 0.12),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(color: const Color(0xFF6F5CFF).withValues(alpha: 0.35)),
+                                    color: AppTheme.accentColor.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+                                    border: Border.all(color: AppTheme.borderTranslucent),
                                   ),
                                   child: Column(
                                     children: [
                                       Row(
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         children: const [
-                                          Icon(Icons.history_rounded, color: Color(0xFF8C88FF), size: 18),
+                                          Icon(Icons.history_rounded, color: AppTheme.accentColorLight, size: 18),
                                           SizedBox(width: 8),
                                           Text(
                                             'Welcome Back!',
@@ -390,7 +385,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                                         children: [
                                           ElevatedButton(
                                             style: ElevatedButton.styleFrom(
-                                              backgroundColor: const Color(0xFF6F5CFF),
+                                              backgroundColor: AppTheme.accentColor,
                                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                               minimumSize: Size.zero,
                                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -1022,11 +1017,7 @@ class _GlowingBadgeState extends State<_GlowingBadge>
                 height: 40,
                 decoration: const BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF6F5CFF), Color(0xFF8C88FF)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  gradient: AppTheme.primaryGradient,
                 ),
                 child: const Icon(
                   Icons.location_on_rounded,
@@ -1099,16 +1090,12 @@ class _AnimatedGetStartedButtonState extends State<_AnimatedGetStartedButton>
               width: double.infinity,
               height: 58,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF6F5CFF), Color(0xFF9A8BFF)],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                ),
+                borderRadius: BorderRadius.circular(AppTheme.pillRadius),
+                gradient: AppTheme.primaryGradient,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF6F5CFF).withValues(alpha: 0.35 * floatGlow),
-                    blurRadius: 16,
+                    color: AppTheme.accentColor.withValues(alpha: 0.3 * floatGlow),
+                    blurRadius: 20,
                     offset: const Offset(0, 6),
                     spreadRadius: 1,
                   ),

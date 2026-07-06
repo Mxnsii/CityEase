@@ -10,6 +10,7 @@ import '../models/pg_listing.dart';
 import '../models/survey_criteria.dart';
 import '../utils/geo_utils.dart';
 import '../utils/google_api_keys.dart';
+import '../utils/app_theme.dart';
 import '../services/google_places_service.dart';
 import 'compare_screen.dart';
 import 'pg_details_screen.dart';
@@ -403,7 +404,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
             child: Container(
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: const Color(0xFF6F5CFF),
+                color: AppTheme.accentColor,
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white, width: 2),
                 boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
@@ -423,9 +424,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
   }
 
   Color _getConfidenceColor(int score) {
-    if (score >= 90) return const Color(0xFF4ADE80);
-    if (score >= 75) return const Color(0xFFF59E0B);
-    return const Color(0xFFEF4444);
+    if (score >= 90) return AppTheme.accentColorLight; // Purple
+    if (score >= 70) return AppTheme.accentColor; // Indigo
+    return AppTheme.textMuted; // Grey
   }
 
   // 14. Recommendation Journey timeline widget
@@ -433,9 +434,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF11142B),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF20254D)),
+        color: AppTheme.cardBackground,
+        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+        border: Border.all(color: AppTheme.borderTranslucent),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -468,7 +469,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
       children: [
         Icon(
           isCompleted ? Icons.check_circle_rounded : Icons.radio_button_off_rounded,
-          color: isCompleted ? const Color(0xFF4ADE80) : Colors.white24,
+          color: isCompleted ? AppTheme.accentColorLight : Colors.white24,
           size: 14,
         ),
         const SizedBox(width: 6),
@@ -489,9 +490,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF11142B),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF20254D)),
+        color: AppTheme.cardBackground,
+        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+        border: Border.all(color: AppTheme.borderTranslucent),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -506,9 +507,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
             physics: const BouncingScrollPhysics(),
             child: Row(
               children: [
-                _buildNarrowdownNode('Searched 5,000+ stays', 'Pool', const Color(0xFF8C88FF)),
+                _buildNarrowdownNode('Searched 5,000+ stays', 'Pool', AppTheme.accentColorLight),
                 _buildNarrowdownArrow(),
-                _buildNarrowdownNode('Budget Compat.', '98 Left', const Color(0xFF3B82F6)),
+                _buildNarrowdownNode('Budget Compat.', '98 Left', AppTheme.accentColor),
                 _buildNarrowdownArrow(),
                 _buildNarrowdownNode('Gender Rules', '42 Left', const Color(0xFF10B981)),
                 _buildNarrowdownArrow(),
@@ -556,19 +557,19 @@ class _ResultsScreenState extends State<ResultsScreen> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF1E1E3F), Color(0xFF11142B)],
+          colors: [AppTheme.cardBackground, AppTheme.secondaryBackground],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFF303666)),
+        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+        border: Border.all(color: AppTheme.borderTranslucent),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: const [
-              Icon(Icons.psychology_outlined, color: Color(0xFF8C88FF), size: 24),
+              Icon(Icons.psychology_outlined, color: AppTheme.accentColorLight, size: 24),
               SizedBox(width: 8),
               Text(
                 'CityEase AI Recommendation Summary',
@@ -590,7 +591,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
           const SizedBox(height: 14),
           Text(
             '🎉 We found ${_exactMatches.isNotEmpty ? _exactMatches.length : _fallbackMatches.length} stays matching your exact lifestyle choices.',
-            style: const TextStyle(color: Color(0xFF4ADE80), fontSize: 13, fontWeight: FontWeight.bold),
+            style: const TextStyle(color: AppTheme.accentColorLight, fontSize: 13, fontWeight: FontWeight.bold),
           ),
         ],
       ),
@@ -634,15 +635,15 @@ class _ResultsScreenState extends State<ResultsScreen> {
       width: double.infinity,
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF1C224E), Color(0xFF131732)],
+          colors: [AppTheme.elevatedCardBackground, AppTheme.cardBackground],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: const Color(0xFFFFD43F), width: 1.5),
+        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+        border: Border.all(color: AppTheme.accentColorLight, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFFFD43F).withValues(alpha: 0.15),
+            color: AppTheme.accentColorLight.withValues(alpha: 0.15),
             blurRadius: 18,
             spreadRadius: 2,
           ),
@@ -655,20 +656,20 @@ class _ResultsScreenState extends State<ResultsScreen> {
           Container(
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
             decoration: const BoxDecoration(
-              color: Color(0xFFFFD43F),
+              color: AppTheme.accentColorLight,
               borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(24),
-                bottomRight: Radius.circular(24),
+                topLeft: Radius.circular(18),
+                bottomRight: Radius.circular(18),
               ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: const [
-                Icon(Icons.emoji_events_rounded, color: Colors.black, size: 14),
+                Icon(Icons.emoji_events_rounded, color: Colors.white, size: 14),
                 SizedBox(width: 6),
                 Text(
                   '🏆 PRIORITY MATCH (AI BEST PICK)',
-                  style: TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                  style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5),
                 ),
               ],
             ),
@@ -693,7 +694,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                         errorBuilder: (c, o, s) => Container(
                           width: 110,
                           height: 110,
-                          color: const Color(0xFF222852),
+                          color: AppTheme.secondaryBackground,
                           child: const Icon(Icons.home_work_rounded, color: Colors.white24),
                         ),
                       ),
@@ -705,7 +706,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // Personality Tag
-                          _buildVisualTag(item.personalityTag, const Color(0xFFFFD43F)),
+                          _buildVisualTag(item.personalityTag, AppTheme.accentColorLight),
                           const SizedBox(height: 6),
                           Text(
                             item.pg.name,
@@ -721,7 +722,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                           const SizedBox(height: 8),
                           Text(
                             '₹${item.pg.rent}/mo',
-                            style: const TextStyle(color: Color(0xFF8C88FF), fontSize: 16, fontWeight: FontWeight.w900),
+                            style: const TextStyle(color: AppTheme.accentColor, fontSize: 16, fontWeight: FontWeight.w900),
                           ),
                         ],
                       ),
@@ -775,13 +776,13 @@ class _ResultsScreenState extends State<ResultsScreen> {
                             }
                           });
                         },
-                        icon: const Icon(Icons.psychology_outlined, size: 14, color: Color(0xFF8C88FF)),
+                        icon: const Icon(Icons.psychology_outlined, size: 14, color: AppTheme.accentColorLight),
                         label: Text(
                           showExplain ? 'Hide Decision Tree' : '🧠 Why did AI recommend this?',
-                          style: const TextStyle(color: Color(0xFF8C88FF), fontSize: 11, fontWeight: FontWeight.bold),
+                          style: const TextStyle(color: AppTheme.accentColorLight, fontSize: 11, fontWeight: FontWeight.bold),
                         ),
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Color(0xFF6F5CFF)),
+                          side: const BorderSide(color: AppTheme.accentColor),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                       ),
@@ -820,35 +821,48 @@ class _ResultsScreenState extends State<ResultsScreen> {
                           });
                         },
                         style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: isSelected ? const Color(0xFF6F5CFF) : Colors.white24),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          side: BorderSide(color: isSelected ? AppTheme.accentColor : AppTheme.borderTranslucent),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.pillRadius)),
                         ),
                         child: Text(
                           isSelected ? 'Selected for Compare' : 'Compare Stays',
-                          style: const TextStyle(color: Colors.white70, fontSize: 11),
+                          style: TextStyle(
+                            color: isSelected ? AppTheme.accentColor : Colors.white70,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
                     const SizedBox(width: 12),
                     // View details
                     Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => PgDetailsScreen(
-                                pg: item.pg,
-                                officeLat: widget.criteria.officeLat,
-                                officeLng: widget.criteria.officeLng,
-                              ),
-                            ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6F5CFF),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      child: Container(
+                        height: 38,
+                        decoration: BoxDecoration(
+                          gradient: AppTheme.primaryGradient,
+                          borderRadius: BorderRadius.circular(AppTheme.pillRadius),
+                          boxShadow: AppTheme.glowShadow,
                         ),
-                        child: const Text('View Details', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => PgDetailsScreen(
+                                  pg: item.pg,
+                                  officeLat: widget.criteria.officeLat,
+                                  officeLng: widget.criteria.officeLng,
+                                ),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.pillRadius)),
+                          ),
+                          child: const Text('View Details', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+                        ),
                       ),
                     ),
                   ],
@@ -862,31 +876,73 @@ class _ResultsScreenState extends State<ResultsScreen> {
   }
 
   Widget _buildCompatibilityMatchMeter(int score) {
-    // 4. Match Meter (represented visually with blocks)
-    final numBlocks = (score / 10).round();
-    final blocksString = '█' * numBlocks + '░' * (10 - numBlocks);
     final confidenceColor = _getConfidenceColor(score);
+    final isPurpleBlue = score >= 90;
+    final isIndigo = score >= 70 && score < 90;
+
+    final gradient = isPurpleBlue
+        ? AppTheme.primaryGradient
+        : isIndigo
+            ? const LinearGradient(colors: [AppTheme.accentColor, AppTheme.accentColor])
+            : const LinearGradient(colors: [AppTheme.textMuted, AppTheme.textMuted]);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Compatibility Score', style: TextStyle(color: Colors.white54, fontSize: 11)),
-        const SizedBox(height: 4),
+        const Text('Compatibility Match', style: TextStyle(color: Colors.white54, fontSize: 11)),
+        const SizedBox(height: 8),
         Row(
           children: [
-            Text(
-              blocksString,
-              style: TextStyle(color: confidenceColor, fontSize: 13, letterSpacing: 2),
+            // Pill progress bar
+            Expanded(
+              child: Container(
+                height: 10,
+                decoration: BoxDecoration(
+                  color: AppTheme.secondaryBackground,
+                  borderRadius: BorderRadius.circular(5),
+                  border: Border.all(color: AppTheme.borderTranslucent),
+                ),
+                child: FractionallySizedBox(
+                  alignment: Alignment.centerLeft,
+                  widthFactor: (score / 100.0).clamp(0.0, 1.0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: gradient,
+                      borderRadius: BorderRadius.circular(5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: confidenceColor.withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
-            const SizedBox(width: 10),
-            Text(
-              '$score%',
-              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              _getConfidenceLabel(score),
-              style: TextStyle(color: confidenceColor, fontSize: 11, fontWeight: FontWeight.bold),
+            const SizedBox(width: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: confidenceColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppTheme.pillRadius),
+                border: Border.all(color: confidenceColor.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '$score%',
+                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    _getConfidenceLabel(score),
+                    style: TextStyle(color: confidenceColor, fontSize: 10, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -1175,7 +1231,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 children: [
                   Row(
                     children: const [
-                      Icon(Icons.auto_awesome, color: Color(0xFF8C88FF), size: 22),
+                      Icon(Icons.auto_awesome, color: AppTheme.accentColorLight, size: 22),
                       SizedBox(width: 8),
                       Text(
                         'CityEase AI Assistant',
@@ -1234,14 +1290,14 @@ class _ResultsScreenState extends State<ResultsScreen> {
       padding: const EdgeInsets.only(bottom: 10),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: const Color(0xFF1B2048),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFF2A316A)),
+            color: AppTheme.secondaryBackground,
+            borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+            border: Border.all(color: AppTheme.borderTranslucent),
           ),
           child: Text(
             label,
@@ -1257,9 +1313,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF131732),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFF222855)),
+        color: AppTheme.secondaryBackground,
+        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+        border: Border.all(color: AppTheme.borderTranslucent),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1290,8 +1346,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFF1B2048),
-        borderRadius: BorderRadius.circular(14),
+        color: AppTheme.secondaryBackground,
+        borderRadius: BorderRadius.circular(AppTheme.pillRadius),
+        border: Border.all(color: AppTheme.borderTranslucent),
       ),
       child: Text(
         label,
@@ -1334,9 +1391,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
   Widget _buildFilterChip(String label, VoidCallback onTap) {
     return ActionChip(
       label: Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
-      backgroundColor: const Color(0xFF121630),
-      side: const BorderSide(color: Color(0xFF222852)),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      backgroundColor: AppTheme.cardBackground,
+      side: BorderSide(color: AppTheme.borderTranslucent),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.pillRadius)),
       onPressed: onTap,
     );
   }
@@ -1345,10 +1402,11 @@ class _ResultsScreenState extends State<ResultsScreen> {
     return FilterChip(
       label: Text(label, style: TextStyle(color: active ? Colors.white : Colors.white60, fontSize: 12)),
       selected: active,
-      selectedColor: const Color(0xFF6F5CFF),
+      selectedColor: AppTheme.accentColor,
       checkmarkColor: Colors.white,
-      backgroundColor: const Color(0xFF121630),
-      side: BorderSide(color: active ? const Color(0xFF8C88FF) : const Color(0xFF222852)),
+      backgroundColor: AppTheme.cardBackground,
+      side: BorderSide(color: active ? AppTheme.accentColorLight : AppTheme.borderTranslucent),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.pillRadius)),
       onSelected: onSelected,
     );
   }
@@ -1356,7 +1414,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
   void _showFilterOptionsSheet(String title, String currentValue, List<String> options, ValueChanged<String> onSelected) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF11142B),
+      backgroundColor: AppTheme.cardBackground,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -1396,9 +1454,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF11142B),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFF20254D)),
+        color: AppTheme.secondaryBackground,
+        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+        border: Border.all(color: AppTheme.borderTranslucent),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1485,7 +1543,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
       ),
       // 6. Floating AI Assistant trigger button
       floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFF6F5CFF),
+        backgroundColor: AppTheme.accentColor,
         tooltip: 'AI Assistant',
         onPressed: _showAiAssistantPanel,
         child: const Icon(Icons.psychology, color: Colors.white),
@@ -1494,9 +1552,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
           ? null
           : Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: const BoxDecoration(
-                color: Color(0xFF11142B),
-                border: Border(top: BorderSide(color: Color(0xFF2E356A))),
+              decoration: BoxDecoration(
+                color: AppTheme.secondaryBackground,
+                border: Border(top: BorderSide(color: AppTheme.borderTranslucent)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1505,23 +1563,32 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     '${_selectedComparePgs.length} stays selected for comparison',
                     style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                   ),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => CompareScreen(
-                            pgs: _selectedComparePgs,
-                            officeLat: widget.criteria.officeLat,
-                            officeLng: widget.criteria.officeLng,
-                          ),
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF6F5CFF),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  Container(
+                    height: 38,
+                    decoration: BoxDecoration(
+                      gradient: AppTheme.primaryGradient,
+                      borderRadius: BorderRadius.circular(AppTheme.pillRadius),
+                      boxShadow: AppTheme.glowShadow,
                     ),
-                    child: const Text('Compare Now →', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => CompareScreen(
+                              pgs: _selectedComparePgs,
+                              officeLat: widget.criteria.officeLat,
+                              officeLng: widget.criteria.officeLng,
+                            ),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.pillRadius)),
+                      ),
+                      child: const Text('Compare Now →', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
                   ),
                 ],
               ),
@@ -1535,15 +1602,15 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF6F5CFF).withValues(alpha: 0.1),
+                        color: AppTheme.accentColor.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: const Color(0xFF6F5CFF).withValues(alpha: 0.3),
+                          color: AppTheme.accentColor.withValues(alpha: 0.3),
                           width: 1.5,
                         ),
                       ),
                       child: const CircularProgressIndicator(
-                        color: Color(0xFF8C88FF),
+                        color: AppTheme.accentColorLight,
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -1819,14 +1886,14 @@ class _ResultsScreenState extends State<ResultsScreen> {
     return Container(
       width: isFeatured ? 290 : double.infinity,
       decoration: BoxDecoration(
-        color: const Color(0xFF121632),
-        borderRadius: BorderRadius.circular(20),
+        color: AppTheme.cardBackground,
+        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
         border: Border.all(
           color: isAlternative
               ? const Color(0xFFD97706).withValues(alpha: 0.4)
               : isSelected
-                  ? const Color(0xFF6F5CFF)
-                  : const Color(0xFF222852),
+                  ? AppTheme.accentColor
+                  : AppTheme.borderTranslucent,
           width: isSelected ? 2 : 1,
         ),
         boxShadow: [
@@ -1968,7 +2035,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 // Rent Row
                 Text(
                   '₹${item.pg.rent}/mo',
-                  style: const TextStyle(color: Color(0xFF8C88FF), fontSize: 15, fontWeight: FontWeight.w800),
+                  style: const TextStyle(color: AppTheme.accentColor, fontSize: 15, fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 6),
 
@@ -2043,11 +2110,11 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.psychology_outlined, size: 12, color: Color(0xFF8C88FF)),
+                        const Icon(Icons.psychology_outlined, size: 12, color: AppTheme.accentColorLight),
                         const SizedBox(width: 4),
                         Text(
                           showExplain ? 'Hide details' : '🧠 Why did AI recommend this?',
-                          style: const TextStyle(color: Color(0xFF8C88FF), fontSize: 9, fontWeight: FontWeight.bold),
+                          style: const TextStyle(color: AppTheme.accentColorLight, fontSize: 9, fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
@@ -2069,7 +2136,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1B2048),
+                          color: AppTheme.secondaryBackground,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Icon(
@@ -2096,7 +2163,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                         icon: Icon(
                           isSelected ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
                           size: 12,
-                          color: isSelected ? const Color(0xFF8C88FF) : Colors.white70,
+                          color: isSelected ? AppTheme.accentColorLight : Colors.white70,
                         ),
                         label: Text(
                           isSelected ? 'Selected' : 'Compare',
@@ -2108,9 +2175,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
                         ),
                         style: OutlinedButton.styleFrom(
                           side: BorderSide(
-                            color: isSelected ? const Color(0xFF6F5CFF) : Colors.white30,
+                            color: isSelected ? AppTheme.accentColor : AppTheme.borderTranslucent,
                           ),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.pillRadius)),
                           padding: EdgeInsets.zero,
                         ),
                       ),
@@ -2119,26 +2186,35 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
                     // View Details button
                     Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => PgDetailsScreen(
-                                pg: item.pg,
-                                officeLat: widget.criteria.officeLat,
-                                officeLng: widget.criteria.officeLng,
-                              ),
-                            ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          backgroundColor: const Color(0xFF6F5CFF),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          elevation: 0,
-                          padding: EdgeInsets.zero,
+                      child: Container(
+                        height: 32,
+                        decoration: BoxDecoration(
+                          gradient: AppTheme.primaryGradient,
+                          borderRadius: BorderRadius.circular(AppTheme.pillRadius),
+                          boxShadow: AppTheme.glowShadow,
                         ),
-                        child: const Text('Details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => PgDetailsScreen(
+                                  pg: item.pg,
+                                  officeLat: widget.criteria.officeLat,
+                                  officeLng: widget.criteria.officeLng,
+                                ),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.pillRadius)),
+                            elevation: 0,
+                            padding: EdgeInsets.zero,
+                          ),
+                          child: const Text('Details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                        ),
                       ),
                     ),
                   ],
@@ -2200,13 +2276,13 @@ class _ResultsScreenState extends State<ResultsScreen> {
       margin: const EdgeInsets.only(top: 16),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF6F5CFF).withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF6F5CFF).withValues(alpha: 0.25)),
+        color: AppTheme.accentColor.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+        border: Border.all(color: AppTheme.borderTranslucent),
       ),
       child: Row(
         children: [
-          const Icon(Icons.lightbulb_outline_rounded, color: Color(0xFF8C88FF), size: 20),
+          const Icon(Icons.lightbulb_outline_rounded, color: AppTheme.accentColorLight, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Text(

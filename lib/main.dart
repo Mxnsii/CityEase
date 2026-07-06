@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'screens/welcome_screen.dart';
+import 'utils/app_theme.dart';
 
 void main() {
   runApp(const CityEaseApp());
@@ -16,12 +17,12 @@ class CityEaseApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF090B19),
+        scaffoldBackgroundColor: AppTheme.primaryBackground,
         fontFamily: 'Inter',
         colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF6F5CFF),
-          secondary: Color(0xFF8C88FF),
-          surface: Color(0xFF11162D),
+          primary: AppTheme.accentColor,
+          secondary: AppTheme.accentColorLight,
+          surface: AppTheme.cardBackground,
         ),
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.transparent,

@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../data/area_suggestions.dart';
 import '../models/survey_criteria.dart';
 import '../services/google_places_service.dart';
+import '../utils/app_theme.dart';
 import '../utils/google_api_keys.dart';
 import 'ai_loading_screen.dart';
 import 'office_map_screen.dart';
@@ -354,7 +355,7 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
         : <String>[];
 
     return Scaffold(
-      backgroundColor: const Color(0xFF090B19),
+      backgroundColor: AppTheme.primaryBackground,
       body: SafeArea(
         child: Column(
           children: [
@@ -386,10 +387,10 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF6F5CFF).withValues(alpha: 0.15),
+                      color: AppTheme.accentColor.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.forum_rounded, color: Color(0xFF8C88FF), size: 24),
+                    child: const Icon(Icons.forum_rounded, color: AppTheme.accentColorLight, size: 24),
                   ),
                 ],
               ),
@@ -401,9 +402,9 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF11142B),
-                  borderRadius: BorderRadius.circular(30),
-                  border: Border.all(color: const Color(0xFF20254D)),
+                  color: AppTheme.secondaryBackground,
+                  borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+                  border: Border.all(color: AppTheme.borderTranslucent),
                 ),
                 child: Stack(
                   children: [
@@ -415,6 +416,7 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
                       itemBuilder: (context, index) {
                         final message = _messages[_messages.length - 1 - index];
                         final isBot = message['sender'] == 'bot';
+                        final isMe = !isBot;
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 16),
                           child: Align(
@@ -423,26 +425,22 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
                               constraints: const BoxConstraints(maxWidth: 300),
                               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
                               decoration: BoxDecoration(
-                                gradient: isBot
-                                    ? const LinearGradient(
-                                        colors: [Color(0xFF1D2248), Color(0xFF131732)],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      )
+                                gradient: isMe
+                                    ? AppTheme.primaryGradient
                                     : const LinearGradient(
-                                        colors: [Color(0xFF6F5CFF), Color(0xFF5038FF)],
+                                        colors: [AppTheme.cardBackground, AppTheme.secondaryBackground],
                                         begin: Alignment.topLeft,
                                         end: Alignment.bottomRight,
                                       ),
-                                border: isBot
-                                    ? Border.all(color: const Color(0xFF2E356A).withValues(alpha: 0.4))
-                                    : null,
                                 borderRadius: BorderRadius.only(
-                                  topLeft: const Radius.circular(24),
-                                  topRight: const Radius.circular(24),
-                                  bottomLeft: Radius.circular(isBot ? 6 : 24),
-                                  bottomRight: Radius.circular(isBot ? 24 : 6),
+                                  topLeft: Radius.circular(AppTheme.cardRadius),
+                                  topRight: Radius.circular(AppTheme.cardRadius),
+                                  bottomLeft: isMe ? Radius.circular(AppTheme.cardRadius) : Radius.zero,
+                                  bottomRight: isMe ? Radius.zero : Radius.circular(AppTheme.cardRadius),
                                 ),
+                                border: isMe
+                                    ? null
+                                    : Border.all(color: AppTheme.borderTranslucent),
                                 boxShadow: [
                                   BoxShadow(
                                     color: Colors.black.withValues(alpha: 0.15),
@@ -493,7 +491,7 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
                                 height: 8,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 1.5,
-                                  color: Color(0xFF8C88FF),
+                                  color: AppTheme.accentColorLight,
                                 ),
                               ),
                               SizedBox(width: 12),
@@ -516,7 +514,7 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
                             if (_isLoadingPredictions)
                               const Padding(
                                 padding: EdgeInsets.symmetric(vertical: 10),
-                                child: CircularProgressIndicator(color: Color(0xFF6F5CFF)),
+                                child: CircularProgressIndicator(color: AppTheme.accentColor),
                               ),
                             if (_placePredictions.isNotEmpty || _localSuggestions.isNotEmpty)
                               ConstrainedBox(
@@ -525,9 +523,9 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
                                   margin: const EdgeInsets.only(bottom: 12),
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF0F1225).withValues(alpha: 0.95),
-                                    borderRadius: BorderRadius.circular(22),
-                                    border: Border.all(color: const Color(0xFF262C54)),
+                                    color: AppTheme.elevatedCardBackground.withValues(alpha: 0.95),
+                                    borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+                                    border: Border.all(color: AppTheme.borderTranslucent),
                                     boxShadow: [
                                       BoxShadow(
                                         color: Colors.black.withValues(alpha: 0.35),
@@ -546,7 +544,7 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
                                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                                 child: Row(
                                                   children: [
-                                                    const Icon(Icons.location_on, size: 18, color: Color(0xFF8C88FF)),
+                                                    const Icon(Icons.location_on, size: 18, color: AppTheme.accentColorLight),
                                                     const SizedBox(width: 12),
                                                     Expanded(
                                                       child: Text(
@@ -565,7 +563,7 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
                                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                                 child: Row(
                                                   children: [
-                                                    const Icon(Icons.search, size: 18, color: Color(0xFF8C88FF)),
+                                                    const Icon(Icons.search, size: 18, color: AppTheme.accentColorLight),
                                                     const SizedBox(width: 12),
                                                     Expanded(
                                                       child: Text(
@@ -597,8 +595,8 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
                                       option,
                                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                                     ),
-                                    backgroundColor: const Color(0xFF161A36),
-                                    side: const BorderSide(color: Color(0xFF333966)),
+                                    backgroundColor: AppTheme.secondaryBackground,
+                                    side: BorderSide(color: AppTheme.borderTranslucent),
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                                     elevation: 2,
                                     onPressed: () => _handleReply(option),
@@ -610,9 +608,9 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
                           ],
                           Container(
                             decoration: BoxDecoration(
-                              color: const Color(0xFF0F1225),
-                              borderRadius: BorderRadius.circular(24),
-                              border: Border.all(color: const Color(0xFF262C54)),
+                              color: AppTheme.cardBackground,
+                              borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+                              border: Border.all(color: AppTheme.borderTranslucent),
                             ),
                             margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
@@ -639,7 +637,7 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
                                 ),
                                 Container(
                                   decoration: const BoxDecoration(
-                                    color: Color(0xFF6F5CFF),
+                                    color: AppTheme.accentColor,
                                     shape: BoxShape.circle,
                                   ),
                                   child: IconButton(
@@ -661,7 +659,7 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(20),
                                     ),
-                                    backgroundColor: const Color(0xFF6F5CFF),
+                                    backgroundColor: AppTheme.accentColor,
                                     padding: const EdgeInsets.symmetric(vertical: 14),
                                   ),
                                   onPressed: _finishConversation,

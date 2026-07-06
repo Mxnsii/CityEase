@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../data/mock_pg_listings.dart';
 import '../models/pg_listing.dart';
 import '../utils/geo_utils.dart';
+import '../utils/app_theme.dart';
 import 'pg_details_screen.dart';
 import 'results_screen.dart';
 
@@ -98,7 +99,7 @@ class _SavedPgsScreenState extends State<SavedPgsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF090B19),
+      backgroundColor: AppTheme.primaryBackground,
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.transparent,
@@ -107,7 +108,7 @@ class _SavedPgsScreenState extends State<SavedPgsScreen> {
       ),
       body: SafeArea(
         child: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: Color(0xFF6F5CFF)))
+            ? const Center(child: CircularProgressIndicator(color: AppTheme.accentColor))
             : _savedStays.isEmpty
                 ? Center(
                     child: Padding(
@@ -115,7 +116,7 @@ class _SavedPgsScreenState extends State<SavedPgsScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.favorite_border_rounded, size: 72, color: Color(0xFF3B4078)),
+                          const Icon(Icons.favorite_border_rounded, size: 72, color: AppTheme.textMuted),
                           const SizedBox(height: 18),
                           const Text(
                             'No Saved Stays Yet',
@@ -144,9 +145,9 @@ class _SavedPgsScreenState extends State<SavedPgsScreen> {
 
                       return Container(
                         decoration: BoxDecoration(
-                          color: const Color(0xFF121632),
-                          borderRadius: BorderRadius.circular(26),
-                          border: Border.all(color: const Color(0xFF222852)),
+                          color: AppTheme.cardBackground,
+                          borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+                          border: Border.all(color: AppTheme.borderTranslucent),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -154,7 +155,7 @@ class _SavedPgsScreenState extends State<SavedPgsScreen> {
                             Stack(
                               children: [
                                 ClipRRect(
-                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+                                  borderRadius: BorderRadius.vertical(top: Radius.circular(AppTheme.cardRadius)),
                                   child: Image.network(
                                     item.pg.imageUrl,
                                     height: 130,
@@ -162,7 +163,7 @@ class _SavedPgsScreenState extends State<SavedPgsScreen> {
                                     fit: BoxFit.cover,
                                     errorBuilder: (c, o, s) => Container(
                                       height: 130,
-                                      color: const Color(0xFF222852),
+                                      color: AppTheme.secondaryBackground,
                                       child: const Icon(Icons.home_work_rounded, color: Colors.white24, size: 48),
                                     ),
                                   ),
@@ -235,46 +236,55 @@ class _SavedPgsScreenState extends State<SavedPgsScreen> {
                                   const SizedBox(height: 12),
                                   // Commute rows
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Row(children: [
-                                        const Icon(Icons.directions_walk_rounded, color: Color(0xFF8C88FF), size: 14),
-                                        const SizedBox(width: 4),
-                                        Text('${walkTime}m walk', style: const TextStyle(color: Colors.white70, fontSize: 11)),
-                                      ]),
-                                      Row(children: [
-                                        const Icon(Icons.directions_bike_rounded, color: Color(0xFF8C88FF), size: 14),
-                                        const SizedBox(width: 4),
-                                        Text('${bikeTime}m bike', style: const TextStyle(color: Colors.white70, fontSize: 11)),
-                                      ]),
-                                      Row(children: [
-                                        const Icon(Icons.directions_car_rounded, color: Color(0xFF8C88FF), size: 14),
-                                        const SizedBox(width: 4),
-                                        Text('${driveTime}m drive', style: const TextStyle(color: Colors.white70, fontSize: 11)),
-                                      ]),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 16),
-                                  ElevatedButton(
-                                    onPressed: () {
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                          builder: (_) => PgDetailsScreen(
-                                            pg: item.pg,
-                                            officeLat: widget.officeLat,
-                                            officeLng: widget.officeLng,
-                                          ),
+                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                     children: [
+                                       Row(children: [
+                                         const Icon(Icons.directions_walk_rounded, color: AppTheme.accentColorLight, size: 14),
+                                         const SizedBox(width: 4),
+                                         Text('${walkTime}m walk', style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                                       ]),
+                                       Row(children: [
+                                         const Icon(Icons.directions_bike_rounded, color: AppTheme.accentColorLight, size: 14),
+                                         const SizedBox(width: 4),
+                                         Text('${bikeTime}m bike', style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                                       ]),
+                                       Row(children: [
+                                         const Icon(Icons.directions_car_rounded, color: AppTheme.accentColorLight, size: 14),
+                                         const SizedBox(width: 4),
+                                         Text('${driveTime}m drive', style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                                       ]),
+                                     ],
+                                   ),
+                                   const SizedBox(height: 16),
+                                   Container(
+                                     height: 40,
+                                     width: double.infinity,
+                                     decoration: BoxDecoration(
+                                       gradient: AppTheme.primaryGradient,
+                                       borderRadius: BorderRadius.circular(AppTheme.pillRadius),
+                                       boxShadow: AppTheme.glowShadow,
+                                     ),
+                                     child: ElevatedButton(
+                                       onPressed: () {
+                                         Navigator.of(context).push(
+                                           MaterialPageRoute(
+                                             builder: (_) => PgDetailsScreen(
+                                               pg: item.pg,
+                                               officeLat: widget.officeLat,
+                                               officeLng: widget.officeLng,
+                                             ),
+                                            ),
+                                          );
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          foregroundColor: Colors.white,
+                                          backgroundColor: Colors.transparent,
+                                          shadowColor: Colors.transparent,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.pillRadius)),
                                         ),
-                                      );
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      foregroundColor: Colors.white,
-                                      backgroundColor: const Color(0xFF6F5CFF),
-                                      minimumSize: const Size.fromHeight(40),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    ),
-                                    child: const Text('View Details', style: TextStyle(fontWeight: FontWeight.bold)),
-                                  )
+                                        child: const Text('View Details', style: TextStyle(fontWeight: FontWeight.bold)),
+                                      ),
+                                    )
                                 ],
                               ),
                             )

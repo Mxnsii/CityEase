@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/survey_criteria.dart';
+import '../utils/app_theme.dart';
 import 'results_screen.dart';
 
 class AiLoadingScreen extends StatefulWidget {
@@ -92,7 +93,7 @@ class _AiLoadingScreenState extends State<AiLoadingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF090B19),
+      backgroundColor: AppTheme.primaryBackground,
       body: SafeArea(
         child: Center(
           child: Padding(
@@ -106,22 +107,22 @@ class _AiLoadingScreenState extends State<AiLoadingScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF6F5CFF).withValues(alpha: 0.1),
+                      color: AppTheme.accentColor.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: const Color(0xFF6F5CFF).withValues(alpha: 0.3),
+                        color: AppTheme.accentColor.withValues(alpha: 0.3),
                         width: 1.5,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF6F5CFF).withValues(alpha: 0.15),
+                          color: AppTheme.accentColor.withValues(alpha: 0.15),
                           blurRadius: 30,
                         ),
                       ],
                     ),
                     child: const Icon(
                       Icons.auto_awesome_rounded,
-                      color: Color(0xFF8C88FF),
+                      color: AppTheme.accentColorLight,
                       size: 40,
                     ),
                   ),
@@ -147,7 +148,7 @@ class _AiLoadingScreenState extends State<AiLoadingScreen> {
                         margin: const EdgeInsets.only(left: 4, top: 4),
                         width: 8,
                         height: 18,
-                        color: const Color(0xFF8C88FF),
+                        color: AppTheme.accentColorLight,
                       ),
                     ),
                   ],
@@ -166,8 +167,8 @@ class _AiLoadingScreenState extends State<AiLoadingScreen> {
                   borderRadius: BorderRadius.circular(10),
                   child: LinearProgressIndicator(
                     value: _progress.clamp(0.0, 1.0),
-                    backgroundColor: const Color(0xFF1B2048),
-                    color: const Color(0xFF6F5CFF),
+                    backgroundColor: AppTheme.secondaryBackground,
+                    color: AppTheme.accentColor,
                     minHeight: 6,
                   ),
                 ),
@@ -178,9 +179,9 @@ class _AiLoadingScreenState extends State<AiLoadingScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF11142B),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFF20254D)),
+                    color: AppTheme.cardBackground,
+                    borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+                    border: Border.all(color: AppTheme.borderTranslucent),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -201,13 +202,13 @@ class _AiLoadingScreenState extends State<AiLoadingScreen> {
                                 color: isCompleted
                                     ? const Color(0xFF4ADE80).withValues(alpha: 0.15)
                                     : isCurrent
-                                        ? const Color(0xFF6F5CFF).withValues(alpha: 0.15)
+                                        ? AppTheme.accentColor.withValues(alpha: 0.15)
                                         : Colors.transparent,
                                 border: Border.all(
                                   color: isCompleted
                                       ? const Color(0xFF4ADE80)
                                       : isCurrent
-                                          ? const Color(0xFF6F5CFF)
+                                          ? AppTheme.accentColor
                                           : Colors.white24,
                                   width: 2,
                                 ),
@@ -225,7 +226,7 @@ class _AiLoadingScreenState extends State<AiLoadingScreen> {
                                             height: 6,
                                             child: CircularProgressIndicator(
                                               strokeWidth: 1.5,
-                                              color: Color(0xFF6F5CFF),
+                                              color: AppTheme.accentColor,
                                             ),
                                           )
                                         : const SizedBox.shrink(),
@@ -238,7 +239,7 @@ class _AiLoadingScreenState extends State<AiLoadingScreen> {
                                 color: isCompleted
                                     ? Colors.white
                                     : isCurrent
-                                        ? const Color(0xFF8C88FF)
+                                        ? AppTheme.accentColorLight
                                         : Colors.white38,
                                 fontSize: 13,
                                 fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
