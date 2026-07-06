@@ -48572,7 +48572,7 @@ if(s===3)r=(m-32)/3
 else r=s===2?(m-16)/2:B.d.bT(m,0,420)
 q=this.b
 p=q.length
-return new A.qB(new A.SJ(s,16,16,r/680,o),new A.wK(new A.aAa(n,this.a,q,this.c),p,!0,!0,!0,A.aJH(),o),o,B.a8,!1,o,o,B.mu,!0,o,o,p,B.ab,o,o,B.B,B.av,o)},
+return new A.qB(new A.SJ(s,16,16,r/490,o),new A.wK(new A.aAa(n,this.a,q,this.c),p,!0,!0,!0,A.aJH(),o),o,B.a8,!1,o,o,B.mu,!0,o,o,p,B.ab,o,o,B.B,B.av,o)},
 $S:309}
 A.aAa.prototype={
 $2(a,b){var s=this,r=s.b.Q8(a,s.c[b],s.d,!1)
