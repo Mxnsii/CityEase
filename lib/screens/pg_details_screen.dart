@@ -265,13 +265,20 @@ class _PgDetailsScreenState extends State<PgDetailsScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: Colors.white,
-        title: Text(widget.pg.name),
+        foregroundColor: const Color(0xFF1A1A1A),
+        title: Text(
+          widget.pg.name,
+          style: const TextStyle(
+            color: Color(0xFF1A1A1A),
+            fontWeight: FontWeight.w600,
+            fontSize: 18,
+          ),
+        ),
         actions: [
           IconButton(
             icon: Icon(
               _isFavorite ? Icons.favorite : Icons.favorite_border,
-              color: _isFavorite ? Colors.red : Colors.white,
+              color: _isFavorite ? Colors.red : const Color(0xFF1A1A1A),
             ),
             onPressed: _toggleFavorite,
           ),
