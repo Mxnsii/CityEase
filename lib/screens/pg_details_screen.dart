@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -42,6 +43,9 @@ class _PgDetailsScreenState extends State<PgDetailsScreen> {
   List<SearchResult> _amenities = [];
   List<String> _favoritePgNames = [];
   bool _isFavorite = false;
+  late final ScrollController _scrollController;
+  double _scrollOffset = 0.0;
+  bool _isImageLight = false;
 
   // Mock Gallery Images (Point 18)
   final List<String> _galleryImages = [
@@ -73,11 +77,25 @@ class _PgDetailsScreenState extends State<PgDetailsScreen> {
     super.initState();
     _placesService = GooglePlacesService(kGoogleMapsApiKey);
     _flutterMapController = flutter_map.MapController();
+    _scrollController = ScrollController()..addListener(() {
+      if (mounted) {
+        setState(() {
+          _scrollOffset = _scrollController.offset;
+        });
+      }
+    });
     
     _setupInitialMarkers();
     _fetchAmenities();
     _loadFavorites();
     _fetchLiveReviews();
+    _calculateImageBrightness();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchLiveReviews() async {
@@ -104,6 +122,44 @@ class _PgDetailsScreenState extends State<PgDetailsScreen> {
     } catch (e) {
       // Keep reviews empty on exception
     }
+  }
+
+  void _calculateImageBrightness() {
+    try {
+      final imageProvider = NetworkImage(widget.pg.imageUrl);
+      final imageStream = imageProvider.resolve(const ImageConfiguration());
+      imageStream.addListener(ImageStreamListener((ImageInfo info, bool _) async {
+        try {
+          final ui.Image image = info.image;
+          final byteData = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+          if (byteData == null) return;
+          
+          final buffer = byteData.buffer.asUint8List();
+          int totalLuminance = 0;
+          int count = 0;
+          
+          // Sample pixels (every 40th byte for performance)
+          for (int i = 0; i < buffer.length; i += 40) {
+            if (i + 2 >= buffer.length) break;
+            final r = buffer[i];
+            final g = buffer[i + 1];
+            final b = buffer[i + 2];
+            final luminance = (0.299 * r + 0.587 * g + 0.114 * b).round();
+            totalLuminance += luminance;
+            count++;
+          }
+          
+          if (count > 0) {
+            final avgLuminance = totalLuminance / count;
+            if (mounted) {
+              setState(() {
+                _isImageLight = avgLuminance > 170;
+              });
+            }
+          }
+        } catch (_) {}
+      }));
+    } catch (_) {}
   }
 
   Future<void> _loadFavorites() async {
@@ -260,25 +316,43 @@ class _PgDetailsScreenState extends State<PgDetailsScreen> {
       ll.LatLng(maxLat + 0.005, maxLng + 0.005),
     );
 
+    final Color foregroundColor = (_scrollOffset > 50)
+        ? const Color(0xFF1A1A1A)
+        : (_isImageLight ? const Color(0xFF1A1A1A) : Colors.white);
+
     return Scaffold(
       backgroundColor: Colors.transparent,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: const Color(0xFF1A1A1A),
+        foregroundColor: foregroundColor,
         title: Text(
           widget.pg.name,
-          style: const TextStyle(
-            color: Color(0xFF1A1A1A),
+          style: TextStyle(
+            color: foregroundColor,
             fontWeight: FontWeight.w600,
             fontSize: 18,
+          ),
+        ),
+        flexibleSpace: ClipRect(
+          child: BackdropFilter(
+            filter: ui.ImageFilter.blur(
+              sigmaX: _scrollOffset > 50 ? 15.0 : 0.0,
+              sigmaY: _scrollOffset > 50 ? 15.0 : 0.0,
+            ),
+            child: Container(
+              color: Colors.white.withValues(
+                alpha: _scrollOffset > 50 ? 0.7 : 0.0,
+              ),
+            ),
           ),
         ),
         actions: [
           IconButton(
             icon: Icon(
               _isFavorite ? Icons.favorite : Icons.favorite_border,
-              color: _isFavorite ? Colors.red : const Color(0xFF1A1A1A),
+              color: _isFavorite ? Colors.red : foregroundColor,
             ),
             onPressed: _toggleFavorite,
           ),
@@ -286,18 +360,18 @@ class _PgDetailsScreenState extends State<PgDetailsScreen> {
       ),
       body: ThemeBackground(
         showGlows: true,
-        child: SafeArea(
-          child: Column(
+        child: Column(
           children: [
             Expanded(
               child: SingleChildScrollView(
+                controller: _scrollController,
                 physics: const BouncingScrollPhysics(),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // 1. Gallery Slideshow Section
                     SizedBox(
-                      height: 200,
+                      height: 240,
                       child: PageView.builder(
                         itemCount: _galleryImages.length,
                         itemBuilder: (context, index) {
@@ -309,10 +383,10 @@ class _PgDetailsScreenState extends State<PgDetailsScreen> {
                         },
                       ),
                     ),
-
-
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    SafeArea(
+                      top: false,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -495,6 +569,7 @@ class _PgDetailsScreenState extends State<PgDetailsScreen> {
                         ],
                       ),
                     ),
+                  ),
 
                     // Map View (Embedded)
                     SizedBox(
@@ -609,9 +684,8 @@ class _PgDetailsScreenState extends State<PgDetailsScreen> {
           ],
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildEssentialGridCard(String label, String value, Color color) {
     return Container(
