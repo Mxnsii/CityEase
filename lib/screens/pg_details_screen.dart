@@ -264,13 +264,7 @@ class _PgDetailsScreenState extends State<PgDetailsScreen> {
                         },
                       ),
                     ),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      child: Text(
-                        'Swipe left/right to view rooms gallery',
-                        style: TextStyle(color: Colors.white38, fontSize: 11),
-                      ),
-                    ),
+
 
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
