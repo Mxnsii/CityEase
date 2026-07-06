@@ -709,15 +709,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                       style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 12),
-                    ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: others.length,
-                      separatorBuilder: (context, index) => const SizedBox(height: 14),
-                      itemBuilder: (context, index) {
-                        return _buildPgCard(context, others[index], isFeatured: false);
-                      },
-                    ),
+                    _buildResponsiveGrid(others),
                   ],
                 ] else ...[
                   // 17. Empty state improvement (matches exactly user copy)
@@ -754,20 +746,12 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   const SizedBox(height: 24),
 
                   const Text(
-                    'Nearby Alternatives',
+                    'Nearby Alternative Recommendations',
                     style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 14),
 
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _fallbackMatches.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 14),
-                    itemBuilder: (context, index) {
-                      return _buildPgCard(context, _fallbackMatches[index], isFeatured: false, isAlternative: true);
-                    },
-                  ),
+                  _buildResponsiveGrid(_fallbackMatches, isAlternative: true),
                 ],
                 const SizedBox(height: 80),
               ],
@@ -775,6 +759,56 @@ class _ResultsScreenState extends State<ResultsScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildResponsiveGrid(List<PGListingWithScore> items, {bool isAlternative = false}) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        int crossAxisCount = 1;
+        if (width > 900) {
+          crossAxisCount = 3;
+        } else if (width > 600) {
+          crossAxisCount = 2;
+        }
+
+        double cellWidth = width;
+        if (crossAxisCount == 3) {
+          cellWidth = (width - 32) / 3;
+        } else if (crossAxisCount == 2) {
+          cellWidth = (width - 16) / 2;
+        } else {
+          cellWidth = width.clamp(0.0, 420.0);
+        }
+
+        // Set fixed height to fit all card elements cleanly
+        double aspectRatio = cellWidth / 680.0;
+
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: items.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+            childAspectRatio: aspectRatio,
+          ),
+          itemBuilder: (context, index) {
+            final card = _buildPgCard(context, items[index], isFeatured: false, isAlternative: isAlternative);
+            if (crossAxisCount == 1) {
+              return Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: card,
+                ),
+              );
+            }
+            return card;
+          },
+        );
+      },
     );
   }
 
@@ -788,48 +822,57 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
     final matchColor = _getConfidenceColor(item.score);
 
+    // Build amenity icons (Point 2)
+    final hasWifi = item.pg.amenities.any((a) => a.toLowerCase().contains('wi-fi'));
+    final hasLaundry = item.pg.amenities.any((a) => a.toLowerCase().contains('laundry') || a.toLowerCase().contains('washing'));
+    final hasGym = item.pg.amenities.any((a) => a.toLowerCase().contains('gym'));
+    final hasParking = item.pg.amenities.any((a) => a.toLowerCase().contains('parking'));
+    final hasWashroom = item.pg.amenities.any((a) => a.toLowerCase().contains('bathroom') || a.toLowerCase().contains('washroom'));
+    final hasAc = item.pg.hasAc;
+
+    List<Widget> amenityIcons = [];
+    if (hasWifi) amenityIcons.add(const Tooltip(message: 'Wi-Fi', child: Icon(Icons.wifi, size: 14, color: Colors.white54)));
+    if (hasLaundry) amenityIcons.add(const Tooltip(message: 'Laundry', child: Icon(Icons.local_laundry_service, size: 14, color: Colors.white54)));
+    if (hasGym) amenityIcons.add(const Tooltip(message: 'Gym', child: Icon(Icons.fitness_center, size: 14, color: Colors.white54)));
+    if (hasParking) amenityIcons.add(const Tooltip(message: 'Parking', child: Icon(Icons.directions_car, size: 14, color: Colors.white54)));
+    if (hasWashroom) amenityIcons.add(const Tooltip(message: 'Attached Washroom', child: Icon(Icons.bathroom_rounded, size: 14, color: Colors.white54)));
+    if (hasAc) amenityIcons.add(const Tooltip(message: 'AC Available', child: Icon(Icons.ac_unit, size: 14, color: Colors.white54)));
+
     return Container(
       width: isFeatured ? 290 : double.infinity,
       decoration: BoxDecoration(
         color: const Color(0xFF121632),
-        borderRadius: BorderRadius.circular(26),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: isAlternative
-              ? const Color(0xFF55222E).withValues(alpha: 0.5)
+              ? const Color(0xFFD97706).withValues(alpha: 0.4)
               : isSelected
                   ? const Color(0xFF6F5CFF)
                   : const Color(0xFF222852),
           width: isSelected ? 2 : 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Reduced Image height slightly so more details fit
+          // 1. PG Image & Badges
           Stack(
             children: [
               ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                 child: Image.network(
                   item.pg.imageUrl,
-                  height: isFeatured ? 130 : 120,
+                  height: isFeatured ? 140 : 180,
                   width: double.infinity,
                   fit: BoxFit.cover,
                   errorBuilder: (c, o, s) => Container(
-                    height: isFeatured ? 130 : 120,
+                    height: isFeatured ? 140 : 180,
                     color: const Color(0xFF222852),
                     child: const Icon(Icons.home_work_rounded, color: Colors.white24, size: 48),
                   ),
                 ),
               ),
-              // Match Score Overlay Badge (Point 10)
+              // Match Score Overlay Badge (Point 3)
               Positioned(
                 top: 12,
                 left: 12,
@@ -837,28 +880,22 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: matchColor,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: matchColor.withValues(alpha: 0.4),
-                            blurRadius: 8,
-                          ),
-                        ],
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         '${item.score}% Match',
-                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
                       ),
                     ),
                     const SizedBox(height: 4),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.8),
-                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.black.withValues(alpha: 0.75),
+                        borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         _getConfidenceLabel(item.score),
@@ -872,19 +909,134 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   ],
                 ),
               ),
-              Positioned(
-                top: 12,
-                right: 12,
-                child: Row(
+              // Alternative Recommendation badge (Point 4)
+              if (isAlternative)
+                Positioned(
+                  bottom: 12,
+                  left: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD97706),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      '🟡 Alternative Recommendation',
+                      style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+
+          // Card details body
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 3. PG Name & Rating Row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Favorite Toggle
+                    Expanded(
+                      child: Text(
+                        item.pg.name,
+                        style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        const Icon(Icons.star_rounded, color: Color(0xFFFFD43F), size: 14),
+                        const SizedBox(width: 2),
+                        Text(
+                          '${item.pg.rating}',
+                          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                
+                // Location text
+                Text(
+                  item.pg.location,
+                  style: const TextStyle(color: Colors.white54, fontSize: 11),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 8),
+
+                // Rent Row
+                Text(
+                  '₹${item.pg.rent}/mo',
+                  style: const TextStyle(color: Color(0xFF8C88FF), fontSize: 15, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 6),
+
+                // Distance + Commute Time Row (Point 3)
+                Row(
+                  children: [
+                    const Icon(Icons.location_on_rounded, color: Colors.redAccent, size: 12),
+                    const SizedBox(width: 2),
+                    Text(
+                      '${item.distance.toStringAsFixed(1)} km away',
+                      style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      '·  🚶 ${walkTime}m  ·  🚲 ${bikeTime}m  ·  🚗 ${driveTime}m',
+                      style: const TextStyle(color: Colors.white38, fontSize: 10),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+
+                // Amenity Icons row (Point 3)
+                if (amenityIcons.isNotEmpty) ...[
+                  Row(
+                    children: [
+                      const Text('Amenities:', style: TextStyle(color: Colors.white38, fontSize: 10)),
+                      const SizedBox(width: 6),
+                      ...amenityIcons.take(5).map((w) => Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: w,
+                          )),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                ],
+
+                // "Why Recommended" short chips (Point 3)
+                const Text(
+                  'Why Recommended?',
+                  style: TextStyle(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 4,
+                  runSpacing: 4,
+                  children: [
+                    ...item.matches.take(2).map((match) => _buildStatusChip(match, isMatch: true)),
+                    ...item.mismatches.take(1).map((mismatch) => _buildStatusChip(mismatch, isMatch: false)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Action Buttons Row (Save, Compare, Details)
+                Row(
+                  children: [
+                    // Save Toggle button
                     GestureDetector(
                       onTap: () => _toggleFavorite(item.pg.name),
                       child: Container(
-                        padding: const EdgeInsets.all(6),
+                        padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF0F1225).withValues(alpha: 0.85),
-                          shape: BoxShape.circle,
+                          color: const Color(0xFF1B2048),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         child: Icon(
                           isFavorite ? Icons.favorite : Icons.favorite_border,
@@ -894,185 +1046,68 @@ class _ResultsScreenState extends State<ResultsScreen> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    // Check to Compare
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          if (isSelected) {
-                            _selectedComparePgs.removeWhere((x) => x.pg.name == item.pg.name);
-                          } else {
-                            _selectedComparePgs.add(item);
-                          }
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF0F1225).withValues(alpha: 0.85),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isSelected ? const Color(0xFF6F5CFF) : Colors.white24,
-                            width: 1.5,
+                    
+                    // Compare Toggle
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            if (isSelected) {
+                              _selectedComparePgs.removeWhere((x) => x.pg.name == item.pg.name);
+                            } else {
+                              _selectedComparePgs.add(item);
+                            }
+                          });
+                        },
+                        icon: Icon(
+                          isSelected ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
+                          size: 12,
+                          color: isSelected ? const Color(0xFF8C88FF) : Colors.white70,
+                        ),
+                        label: Text(
+                          isSelected ? 'Selected' : 'Compare',
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : Colors.white70,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              isSelected ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
-                              color: isSelected ? const Color(0xFF8C88FF) : Colors.white70,
-                              size: 14,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              isSelected ? 'Selected' : 'Compare',
-                              style: TextStyle(
-                                color: isSelected ? Colors.white : Colors.white70,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(
+                            color: isSelected ? const Color(0xFF6F5CFF) : Colors.white30,
+                          ),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          padding: EdgeInsets.zero,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+
+                    // View Details button
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => PgDetailsScreen(
+                                pg: item.pg,
+                                officeLat: widget.criteria.officeLat,
+                                officeLng: widget.criteria.officeLng,
                               ),
                             ),
-                          ],
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          backgroundColor: const Color(0xFF6F5CFF),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          elevation: 0,
+                          padding: EdgeInsets.zero,
                         ),
+                        child: const Text('Details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
                       ),
                     ),
                   ],
-                ),
-              ),
-            ],
-          ),
-
-          Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        item.pg.name,
-                        style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        const Icon(Icons.star_rounded, color: Color(0xFFFFD43F), size: 15),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${item.pg.rating}',
-                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  item.pg.location,
-                  style: const TextStyle(color: Colors.white54, fontSize: 11),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 10),
-
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '₹${item.pg.rent}/mo',
-                      style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800),
-                    ),
-                    Text(
-                      '📍 ${item.distance.toStringAsFixed(1)} km away',
-                      style: const TextStyle(color: Colors.white70, fontSize: 10),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-
-                // Commute Travel Times Row (Point 12)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0F1225),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFF1B2048)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildTravelTimeRow('🚶', '$walkTime min walk'),
-                      const SizedBox(height: 4),
-                      _buildTravelTimeRow('🚲', '$bikeTime min bike'),
-                      const SizedBox(height: 4),
-                      _buildTravelTimeRow('🚗', '$driveTime min drive'),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // 13. Nearby essentials quick display
-                const Text(
-                  'Nearby Essentials:',
-                  style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 4),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 4,
-                  children: const [
-                    Text('🚇 Metro (450m)', style: TextStyle(color: Colors.white38, fontSize: 9)),
-                    Text('🚌 Bus (200m)', style: TextStyle(color: Colors.white38, fontSize: 9)),
-                    Text('🛒 Grocery (150m)', style: TextStyle(color: Colors.white38, fontSize: 9)),
-                    Text('🏥 Hospital (1.2km)', style: TextStyle(color: Colors.white38, fontSize: 9)),
-                    Text('🍽 Resto (100m)', style: TextStyle(color: Colors.white38, fontSize: 9)),
-                    Text('☕ Café (80m)', style: TextStyle(color: Colors.white38, fontSize: 9)),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                // 11. Explain Why Recommended using CHIPS
-                const Text(
-                  'Why this PG?',
-                  style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    ...item.matches.take(3).map((match) => _buildStatusChip(match, isMatch: true)),
-                    ...item.mismatches.take(2).map((mismatch) => _buildStatusChip(mismatch, isMatch: false)),
-                  ],
-                ),
-                const SizedBox(height: 14),
-
-                // View Details Button
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => PgDetailsScreen(
-                          pg: item.pg,
-                          officeLat: widget.criteria.officeLat,
-                          officeLng: widget.criteria.officeLng,
-                        ),
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    backgroundColor: const Color(0xFF6F5CFF),
-                    minimumSize: const Size.fromHeight(38),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    elevation: 0,
-                  ),
-                  child: const Text('View Details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                 ),
               ],
             ),
@@ -1085,10 +1120,10 @@ class _ResultsScreenState extends State<ResultsScreen> {
   Widget _buildStatusChip(String label, {required bool isMatch}) {
     final color = isMatch ? const Color(0xFF4ADE80) : const Color(0xFFEF4444);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
@@ -1097,25 +1132,15 @@ class _ResultsScreenState extends State<ResultsScreen> {
           Icon(
             isMatch ? Icons.check : Icons.close,
             color: color,
-            size: 10,
+            size: 8,
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 2),
           Text(
             label,
-            style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.bold),
+            style: TextStyle(color: color, fontSize: 8, fontWeight: FontWeight.bold),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildTravelTimeRow(String emoji, String text) {
-    return Row(
-      children: [
-        Text(emoji, style: const TextStyle(fontSize: 12)),
-        const SizedBox(width: 8),
-        Text(text, style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)),
-      ],
     );
   }
 }
