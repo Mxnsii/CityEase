@@ -66,11 +66,20 @@ class _WelcomeScreenState extends State<WelcomeScreen>
       acRequired: _savedAcRequired ?? true,
     );
 
-    Navigator.of(context).push(
+    final navigator = Navigator.of(context);
+    navigator.push<bool>(
       MaterialPageRoute(
         builder: (_) => ResultsScreen(criteria: criteria),
       ),
-    );
+    ).then((shouldReset) {
+      if (shouldReset == true) {
+        navigator.push(
+          MaterialPageRoute(
+            builder: (_) => const ChatOnboardingScreen(),
+          ),
+        );
+      }
+    });
   }
 
   @override

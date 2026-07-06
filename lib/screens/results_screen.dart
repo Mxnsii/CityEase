@@ -1460,7 +1460,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
         foregroundColor: Colors.white,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-          onPressed: () => Navigator.of(context).pop(true),
+          onPressed: () => Navigator.of(context).pop(false),
         ),
         actions: [
           IconButton(
