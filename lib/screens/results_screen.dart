@@ -2073,7 +2073,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                             ),
                             const SizedBox(height: 12),
                             SizedBox(
-                              height: 460,
+                              height: 480,
                               child: ListView.separated(
                                 scrollDirection: Axis.horizontal,
                                 physics: const BouncingScrollPhysics(),
@@ -2221,6 +2221,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
     return SizedBox(
       width: isFeatured ? 290 : double.infinity,
+      height: isFeatured ? 460 : null,
       child: GlassCard(
         borderRadius: AppTheme.cardRadius,
         border: BorderSide(
