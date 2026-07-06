@@ -92,9 +92,9 @@ class _AiLoadingScreenState extends State<AiLoadingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.primaryBackground,
-      body: SafeArea(
+    return ThemeBackground(
+      showGlows: true,
+      child: SafeArea(
         child: Center(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 28),
@@ -167,7 +167,7 @@ class _AiLoadingScreenState extends State<AiLoadingScreen> {
                   borderRadius: BorderRadius.circular(10),
                   child: LinearProgressIndicator(
                     value: _progress.clamp(0.0, 1.0),
-                    backgroundColor: AppTheme.secondaryBackground,
+                    backgroundColor: Colors.white.withValues(alpha: 0.05),
                     color: AppTheme.accentColor,
                     minHeight: 6,
                   ),
@@ -175,14 +175,9 @@ class _AiLoadingScreenState extends State<AiLoadingScreen> {
                 const SizedBox(height: 32),
 
                 // ChatGPT thinking list container
-                Container(
-                  width: double.infinity,
+                GlassCard(
+                  borderRadius: AppTheme.cardRadius,
                   padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: AppTheme.cardBackground,
-                    borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-                    border: Border.all(color: AppTheme.borderTranslucent),
-                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: List.generate(_steps.length, (index) {

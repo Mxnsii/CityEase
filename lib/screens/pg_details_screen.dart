@@ -249,7 +249,7 @@ class _PgDetailsScreenState extends State<PgDetailsScreen> {
     );
 
     return Scaffold(
-      backgroundColor: AppTheme.primaryBackground,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -265,8 +265,10 @@ class _PgDetailsScreenState extends State<PgDetailsScreen> {
           ),
         ],
       ),
-      body: SafeArea(
-        child: Column(
+      body: ThemeBackground(
+        showGlows: true,
+        child: SafeArea(
+          child: Column(
           children: [
             Expanded(
               child: SingleChildScrollView(
@@ -344,14 +346,10 @@ class _PgDetailsScreenState extends State<PgDetailsScreen> {
                           const SizedBox(height: 12),
                           Column(
                             children: _roomTypes.map((room) {
-                              return Container(
+                              return GlassCard(
+                                borderRadius: AppTheme.cardRadius,
                                 margin: const EdgeInsets.only(bottom: 10),
                                 padding: const EdgeInsets.all(14),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.cardBackground,
-                                  borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-                                  border: Border.all(color: AppTheme.borderTranslucent),
-                                ),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
@@ -380,14 +378,9 @@ class _PgDetailsScreenState extends State<PgDetailsScreen> {
                           
                           const Text('Vibe & Lifestyle', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                           const SizedBox(height: 12),
-                          Container(
-                            width: double.infinity,
+                          GlassCard(
+                            borderRadius: AppTheme.cardRadius,
                             padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: AppTheme.cardBackground,
-                              borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-                              border: Border.all(color: AppTheme.borderTranslucent),
-                            ),
                             child: Row(
                               children: [
                                 const Icon(Icons.nightlife, color: AppTheme.accentColorLight, size: 28),
@@ -425,14 +418,10 @@ class _PgDetailsScreenState extends State<PgDetailsScreen> {
                             const SizedBox(height: 12),
                             Column(
                               children: _reviews.map((rev) {
-                                return Container(
+                                return GlassCard(
+                                  borderRadius: AppTheme.cardRadius,
                                   margin: const EdgeInsets.only(bottom: 10),
                                   padding: const EdgeInsets.all(14),
-                                  decoration: BoxDecoration(
-                                    color: AppTheme.cardBackground,
-                                    borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-                                    border: Border.all(color: AppTheme.borderTranslucent),
-                                  ),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
@@ -601,8 +590,9 @@ class _PgDetailsScreenState extends State<PgDetailsScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildEssentialGridCard(String label, String value, Color color) {
     return Container(

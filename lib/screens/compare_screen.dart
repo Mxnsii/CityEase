@@ -54,7 +54,7 @@ class CompareScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      backgroundColor: AppTheme.primaryBackground,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.transparent,
@@ -67,8 +67,10 @@ class CompareScreen extends StatelessWidget {
           ],
         ),
       ),
-      body: SafeArea(
-        child: Column(
+      body: ThemeBackground(
+        showGlows: true,
+        child: SafeArea(
+          child: Column(
           children: [
             Expanded(
               child: SingleChildScrollView(
@@ -110,8 +112,9 @@ class CompareScreen extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildLabelsColumn() {
     return Container(

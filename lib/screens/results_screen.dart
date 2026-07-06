@@ -431,13 +431,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
   // 14. Recommendation Journey timeline widget
   Widget _buildJourneyTimeline() {
-    return Container(
+    return GlassCard(
+      borderRadius: AppTheme.cardRadius,
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-      decoration: BoxDecoration(
-        color: AppTheme.cardBackground,
-        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-        border: Border.all(color: AppTheme.borderTranslucent),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -487,13 +483,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
   // 19. Recommendation narrowdown sequence
   Widget _buildNarrowdownTimeline() {
-    return Container(
+    return GlassCard(
+      borderRadius: AppTheme.cardRadius,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.cardBackground,
-        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-        border: Border.all(color: AppTheme.borderTranslucent),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1309,14 +1301,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
   }
 
   Widget _buildPreferencesCard() {
-    return Container(
-      width: double.infinity,
+    return GlassCard(
+      borderRadius: AppTheme.cardRadius,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.secondaryBackground,
-        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-        border: Border.all(color: AppTheme.borderTranslucent),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1346,7 +1333,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: AppTheme.secondaryBackground,
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(AppTheme.pillRadius),
         border: Border.all(color: AppTheme.borderTranslucent),
       ),
@@ -1389,37 +1376,59 @@ class _ResultsScreenState extends State<ResultsScreen> {
   }
 
   Widget _buildFilterChip(String label, VoidCallback onTap) {
-    return ActionChip(
-      label: Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
-      backgroundColor: AppTheme.cardBackground,
-      side: BorderSide(color: AppTheme.borderTranslucent),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.pillRadius)),
-      onPressed: onTap,
+    return SpringButton(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(AppTheme.pillRadius),
+          border: Border.all(color: AppTheme.borderTranslucent),
+        ),
+        child: Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
+      ),
     );
   }
 
   Widget _buildToggleChip(String label, bool active, ValueChanged<bool> onSelected) {
-    return FilterChip(
-      label: Text(label, style: TextStyle(color: active ? Colors.white : Colors.white60, fontSize: 12)),
-      selected: active,
-      selectedColor: AppTheme.accentColor,
-      checkmarkColor: Colors.white,
-      backgroundColor: AppTheme.cardBackground,
-      side: BorderSide(color: active ? AppTheme.accentColorLight : AppTheme.borderTranslucent),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.pillRadius)),
-      onSelected: onSelected,
+    return SpringButton(
+      onTap: () => onSelected(!active),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: active
+              ? AppTheme.accentColor.withValues(alpha: 0.2)
+              : Colors.white.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(AppTheme.pillRadius),
+          border: Border.all(
+            color: active ? AppTheme.accentColor : AppTheme.borderTranslucent,
+            width: active ? 1.5 : 1.0,
+          ),
+          boxShadow: active ? AppTheme.glowShadow : null,
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: active ? Colors.white : Colors.white60,
+            fontSize: 12,
+            fontWeight: active ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ),
     );
   }
 
   void _showFilterOptionsSheet(String title, String currentValue, List<String> options, ValueChanged<String> onSelected) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppTheme.cardBackground,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (context) {
-        return Padding(
+        return GlassCard(
+          borderRadius: 24.0,
+          margin: const EdgeInsets.all(12),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -1450,14 +1459,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
     final good = _exactMatches.where((x) => x.score >= 70 && x.score < 90).length;
     final average = _exactMatches.where((x) => x.score < 70).length;
 
-    return Container(
-      width: double.infinity,
+    return GlassCard(
+      borderRadius: AppTheme.cardRadius,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.secondaryBackground,
-        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-        border: Border.all(color: AppTheme.borderTranslucent),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1513,7 +1517,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
         : (_fallbackMatches.isNotEmpty ? _fallbackMatches.skip(3).toList() : []);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF090B19),
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.transparent,
@@ -1593,9 +1597,11 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 ],
               ),
             ),
-      body: SafeArea(
-        child: _isLoadingPgs
-            ? Center(
+      body: ThemeBackground(
+        showGlows: true,
+        child: SafeArea(
+          child: _isLoadingPgs
+              ? Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -1852,7 +1858,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   ),
                 ),
               ),
-      ),
+            ),
+          ),
     );
   }
 
@@ -1883,28 +1890,19 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
     final showExplain = _expandedExplanationPgNames.contains(item.pg.name);
 
-    return Container(
+    return SizedBox(
       width: isFeatured ? 290 : double.infinity,
-      decoration: BoxDecoration(
-        color: AppTheme.cardBackground,
-        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-        border: Border.all(
+      child: GlassCard(
+        borderRadius: AppTheme.cardRadius,
+        border: BorderSide(
           color: isAlternative
               ? const Color(0xFFD97706).withValues(alpha: 0.4)
               : isSelected
                   ? AppTheme.accentColor
-                  : AppTheme.borderTranslucent,
-          width: isSelected ? 2 : 1,
+                  : Colors.white.withValues(alpha: 0.08),
+          width: isSelected ? 2.0 : 1.0,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 1. PG Image & Badges
@@ -2224,8 +2222,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildStatusChip(String label, {required bool isMatch}) {
     final color = isMatch ? const Color(0xFF4ADE80) : const Color(0xFFEF4444);
@@ -2272,14 +2271,11 @@ class _ResultsScreenState extends State<ResultsScreen> {
       recommendations = 'HAL 2nd Stage and Domlur';
     }
     if (hub == null) return const SizedBox.shrink();
-    return Container(
+    return GlassCard(
+      borderRadius: AppTheme.cardRadius,
       margin: const EdgeInsets.only(top: 16),
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppTheme.accentColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-        border: Border.all(color: AppTheme.borderTranslucent),
-      ),
+      color: AppTheme.accentColor.withValues(alpha: 0.1),
       child: Row(
         children: [
           const Icon(Icons.lightbulb_outline_rounded, color: AppTheme.accentColorLight, size: 20),

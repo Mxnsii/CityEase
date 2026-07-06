@@ -99,15 +99,17 @@ class _SavedPgsScreenState extends State<SavedPgsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.primaryBackground,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.transparent,
         title: const Text('Saved Stays'),
         foregroundColor: Colors.white,
       ),
-      body: SafeArea(
-        child: _isLoading
+      body: ThemeBackground(
+        showGlows: true,
+        child: SafeArea(
+          child: _isLoading
             ? const Center(child: CircularProgressIndicator(color: AppTheme.accentColor))
             : _savedStays.isEmpty
                 ? Center(
@@ -143,12 +145,8 @@ class _SavedPgsScreenState extends State<SavedPgsScreen> {
                       final bikeTime = (item.distance * 4).round().clamp(1, 40);
                       final driveTime = (item.distance * 2).round().clamp(1, 20);
 
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: AppTheme.cardBackground,
-                          borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-                          border: Border.all(color: AppTheme.borderTranslucent),
-                        ),
+                      return GlassCard(
+                        borderRadius: AppTheme.cardRadius,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -293,7 +291,8 @@ class _SavedPgsScreenState extends State<SavedPgsScreen> {
                       );
                     },
                   ),
-      ),
+            ),
+          ),
     );
   }
 }

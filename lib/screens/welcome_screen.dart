@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/survey_criteria.dart';
@@ -115,24 +114,10 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          // 1. Cosmic Deep Gradient Background
-          Container(
-            decoration: const BoxDecoration(
-               gradient: LinearGradient(
-                 begin: Alignment.topCenter,
-                 end: Alignment.bottomCenter,
-                 colors: [
-                   AppTheme.primaryBackground,
-                   AppTheme.secondaryBackground,
-                   Color(0xFF1B2048),
-                   Color(0xFF2C2755),
-                 ],
-                 stops: [0.0, 0.4, 0.8, 1.0],
-               ),
-            ),
-          ),
+      body: ThemeBackground(
+        showGlows: true,
+        child: Stack(
+          children: [
 
           // 2. Twinkling Stars Background Layer
           AnimatedBuilder(
@@ -310,113 +295,103 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                         ),
                       );
                     },
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(30),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-                          decoration: BoxDecoration(
-                            color: AppTheme.cardBackground.withValues(alpha: 0.8),
-                            borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-                            border: Border.all(
-                              color: AppTheme.borderTranslucent,
+                    child: GlassCard(
+                      borderRadius: AppTheme.cardRadius,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Pulse-glowing location badge
+                          _GlowingBadge(),
+                          const SizedBox(height: 20),
+                          const Text(
+                            'Smart Match Your\nPerfect Stay',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 26,
+                              fontWeight: FontWeight.w900,
+                              height: 1.25,
+                              letterSpacing: -0.5,
                             ),
-                            boxShadow: AppTheme.cardShadow,
                           ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // Pulse-glowing location badge
-                              _GlowingBadge(),
-                              const SizedBox(height: 20),
-                              const Text(
-                                'Smart Match Your\nPerfect Stay',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.w900,
-                                  height: 1.25,
-                                  letterSpacing: -0.5,
-                                ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'Skip the endless scrolling. Give your budget and commute constraints, and let our AI locate your ideal neighborhood and PG.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14,
+                              height: 1.5,
+                            ),
+                          ),
+                          if (_hasSavedPreferences) ...[
+                            const SizedBox(height: 24),
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: AppTheme.accentColor.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+                                border: Border.all(color: AppTheme.borderTranslucent),
                               ),
-                              const SizedBox(height: 12),
-                              const Text(
-                                'Skip the endless scrolling. Give your budget and commute constraints, and let our AI locate your ideal neighborhood and PG.',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 14,
-                                  height: 1.5,
-                                ),
-                              ),
-                              if (_hasSavedPreferences) ...[
-                                const SizedBox(height: 24),
-                                Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: AppTheme.accentColor.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-                                    border: Border.all(color: AppTheme.borderTranslucent),
-                                  ),
-                                  child: Column(
-                                    children: [
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: const [
-                                          Icon(Icons.history_rounded, color: AppTheme.accentColorLight, size: 18),
-                                          SizedBox(width: 8),
-                                          Text(
-                                            'Welcome Back!',
-                                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 8),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: const [
+                                      Icon(Icons.history_rounded, color: AppTheme.accentColorLight, size: 18),
+                                      SizedBox(width: 8),
                                       Text(
-                                        'Resume searching PGs near\n"$_savedOfficeName"?',
-                                        textAlign: TextAlign.center,
-                                        style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+                                        'Welcome Back!',
+                                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                                       ),
-                                      const SizedBox(height: 14),
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          ElevatedButton(
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: AppTheme.accentColor,
-                                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                              minimumSize: Size.zero,
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                            ),
-                                            onPressed: _resumeSavedSearch,
-                                            child: const Text('Resume Search', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
-                                          ),
-                                          const SizedBox(width: 10),
-                                          OutlinedButton(
-                                            style: OutlinedButton.styleFrom(
-                                              side: const BorderSide(color: Colors.white24),
-                                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                              minimumSize: Size.zero,
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                            ),
-                                            onPressed: () {
-                                              setState(() {
-                                                _hasSavedPreferences = false;
-                                              });
-                                            },
-                                            child: const Text('New Search', style: TextStyle(fontSize: 11, color: Colors.white70)),
-                                          ),
-                                        ],
-                                      )
                                     ],
                                   ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Resume searching PGs near\n"$_savedOfficeName"?',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+                                  ),
+                                  const SizedBox(height: 14),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      SpringButton(
+                                        onTap: _resumeSavedSearch,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                          decoration: BoxDecoration(
+                                            color: AppTheme.accentColor,
+                                            borderRadius: BorderRadius.circular(AppTheme.buttonRadius),
+                                            boxShadow: AppTheme.glowShadow,
+                                          ),
+                                          child: const Text('Resume Search', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      SpringButton(
+                                        onTap: () {
+                                          setState(() {
+                                            _hasSavedPreferences = false;
+                                          });
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                          decoration: BoxDecoration(
+                                            border: Border.all(color: AppTheme.borderTranslucent),
+                                            borderRadius: BorderRadius.circular(AppTheme.buttonRadius),
+                                          ),
+                                          child: const Text('New Search', style: TextStyle(fontSize: 11, color: Colors.white70, fontWeight: FontWeight.bold)),
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                ],
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
                   ),
@@ -495,8 +470,9 @@ class _WelcomeScreenState extends State<WelcomeScreen>
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 // -----------------------------------------------------------------------------

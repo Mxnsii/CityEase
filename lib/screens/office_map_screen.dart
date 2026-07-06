@@ -8,6 +8,7 @@ import 'package:latlong2/latlong.dart' as ll;
 
 import '../services/google_places_service.dart';
 import '../utils/google_api_keys.dart';
+import '../utils/app_theme.dart';
 import 'package:google_place/google_place.dart';
 
 class OfficeSelection {
@@ -146,15 +147,17 @@ class _OfficeMapScreenState extends State<OfficeMapScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF090B19),
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: Colors.white,
         title: const Text('Pinpoint location'),
       ),
-      body: SafeArea(
-        child: Padding(
+      body: ThemeBackground(
+        showGlows: true,
+        child: SafeArea(
+          child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -263,15 +266,14 @@ class _OfficeMapScreenState extends State<OfficeMapScreen> {
                           _selectedPgIndex = index;
                         });
                       },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: selected ? const Color(0xFF191F45) : const Color(0xFF11162D),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: selected ? const Color(0xFF6F5CFF) : const Color(0xFF2D3161),
-                          ),
-                        ),
+                      child: GlassCard(
+                        borderRadius: 20,
                         padding: const EdgeInsets.all(16),
+                        color: selected ? AppTheme.accentColor.withValues(alpha: 0.15) : null,
+                        border: BorderSide(
+                          color: selected ? AppTheme.accentColor : Colors.white.withValues(alpha: 0.08),
+                          width: selected ? 1.5 : 1.0,
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -312,23 +314,28 @@ class _OfficeMapScreenState extends State<OfficeMapScreen> {
                 ),
               ),
               const SizedBox(height: 10),
-              MouseRegion(
-                cursor: SystemMouseCursors.click,
-                child: ElevatedButton(
-                  onPressed: _confirmSelection,
-                  style: ElevatedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    backgroundColor: const Color(0xFF6F5CFF),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                    minimumSize: const Size.fromHeight(54),
+              SpringButton(
+                onTap: _confirmSelection,
+                child: Container(
+                  height: 54,
+                  width: double.infinity,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    gradient: AppTheme.primaryGradient,
+                    borderRadius: BorderRadius.circular(AppTheme.pillRadius),
+                    boxShadow: AppTheme.glowShadow,
                   ),
-                  child: const Text('Next', style: TextStyle(fontSize: 16)),
+                  child: const Text(
+                    'Next',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
                 ),
               ),
             ],
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
