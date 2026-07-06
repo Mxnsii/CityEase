@@ -15,6 +15,7 @@ import '../services/google_places_service.dart';
 import 'compare_screen.dart';
 import 'pg_details_screen.dart';
 import 'saved_pgs_screen.dart';
+import 'office_map_screen.dart';
 
 class ResultsScreen extends StatefulWidget {
   final SurveyCriteria criteria;
@@ -1492,14 +1493,35 @@ class _ResultsScreenState extends State<ResultsScreen> {
                               if (prediction.placeId == null) return;
                               final details = await _placesService.getPlaceDetails(prediction.placeId!);
                               if (details?.geometry?.location == null) return;
-                              setState(() {
-                                _currentOfficeLat = details!.geometry!.location!.lat!;
-                                _currentOfficeLng = details.geometry!.location!.lng!;
-                                _currentOfficeArea = prediction.description ?? _currentOfficeArea;
-                                _currentOfficeLocation = prediction.description ?? _currentOfficeLocation;
-                              });
+                              
+                              final double targetLat = details!.geometry!.location!.lat!;
+                              final double targetLng = details.geometry!.location!.lng!;
+                              final String targetArea = prediction.structuredFormatting?.mainText ?? prediction.description ?? '';
+                              final String targetLocation = prediction.description ?? '';
+                              
+                              // 1. Close the search dialog first
                               Navigator.of(context).pop();
-                              _computeData(forceRefresh: true);
+                              
+                              // 2. Open the OfficeMapScreen to pinpoint the location
+                              final selectedOffice = await Navigator.of(context).push<OfficeSelection?>(
+                                MaterialPageRoute(
+                                  builder: (_) => OfficeMapScreen(
+                                    area: targetArea,
+                                    placeName: targetLocation,
+                                    initialPosition: LatLng(targetLat, targetLng),
+                                  ),
+                                ),
+                              );
+                              
+                              if (selectedOffice != null && mounted) {
+                                setState(() {
+                                  _currentOfficeLat = selectedOffice.latitude;
+                                  _currentOfficeLng = selectedOffice.longitude;
+                                  _currentOfficeArea = targetArea;
+                                  _currentOfficeLocation = targetLocation;
+                                });
+                                _computeData(forceRefresh: true);
+                              }
                             },
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
