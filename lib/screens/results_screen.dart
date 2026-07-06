@@ -1816,8 +1816,44 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 8),
-                      GlassCard(
+                      // Slim sticky header to fill the top white gap
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        margin: const EdgeInsets.only(bottom: 12, top: 6),
+                        decoration: BoxDecoration(
+                          color: AppTheme.secondaryBackground.withOpacity(0.6),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppTheme.borderTranslucent),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.search, color: AppTheme.accentColorLight, size: 16),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Find premium PGs near ${_currentOfficeArea} • ${_exactMatches.isNotEmpty ? _exactMatches.length : _fallbackMatches.length} results',
+                                style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: _showAiAssistantPanel,
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.accentColor,
+                                  borderRadius: BorderRadius.circular(10),
+                                  boxShadow: AppTheme.glowShadow,
+                                ),
+                                child: const Icon(Icons.psychology, color: Colors.white, size: 16),
+                              ),
+                            )
+                          ],
+                        ),
+                      ),
+                        GlassCard(
                         borderRadius: AppTheme.cardRadius,
                         padding: const EdgeInsets.all(16),
                         margin: const EdgeInsets.only(bottom: 14),
