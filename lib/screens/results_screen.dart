@@ -1922,6 +1922,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       _buildPreferencesCard(),
                       const SizedBox(height: 10),
                       _buildHubTip(),
