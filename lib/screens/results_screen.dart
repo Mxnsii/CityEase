@@ -1725,7 +1725,40 @@ class _ResultsScreenState extends State<ResultsScreen> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppTheme.accentColor,
         tooltip: 'AI Assistant',
-        onPressed: _showAiAssistantPanel,
+        onPressed: () {
+          showModalBottomSheet(
+            context: context,
+            backgroundColor: const Color(0xFF11142B),
+            shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(18))),
+            builder: (context) {
+              return Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.psychology_outlined, color: AppTheme.accentColorLight),
+                      title: const Text('Open AI Assistant', style: TextStyle(color: Colors.white)),
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        _showAiAssistantPanel();
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.search, color: AppTheme.accentColorLight),
+                      title: const Text('New Search (select area)', style: TextStyle(color: Colors.white)),
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        _showAssistantPlaceSearch(context);
+                      },
+                    ),
+                    const SizedBox(height: 6),
+                  ],
+                ),
+              );
+            },
+          );
+        },
         child: const Icon(Icons.psychology, color: Colors.white),
       ),
       bottomNavigationBar: _selectedComparePgs.isEmpty
@@ -1815,24 +1848,24 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Slim sticky header to fill the top white gap
+                      // Slim sticky header to fill the top white gap — now light background with black text
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         margin: const EdgeInsets.only(bottom: 12, top: 6),
                         decoration: BoxDecoration(
-                          color: AppTheme.secondaryBackground.withOpacity(0.6),
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: AppTheme.borderTranslucent),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.search, color: AppTheme.accentColorLight, size: 16),
+                            Icon(Icons.search, color: AppTheme.accentColorLight, size: 16),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 'Find premium PGs near ${_currentOfficeArea} • ${_exactMatches.isNotEmpty ? _exactMatches.length : _fallbackMatches.length} results',
-                                style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
+                                style: const TextStyle(color: Colors.black87, fontSize: 13, fontWeight: FontWeight.bold),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
