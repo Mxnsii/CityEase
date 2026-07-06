@@ -978,7 +978,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: 8,
       crossAxisSpacing: 12,
-      childAspectRatio: 3.5,
+      // increase aspect ratio to make tiles shorter (wider relative to height)
+      childAspectRatio: 6.0,
       children: [
         _buildMatrixItem('Budget Match', '100%'),
         _buildMatrixItem('Commute Score', '${(98 - item.distance * 3).clamp(70, 100).round()}%'),
@@ -990,7 +991,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
   Widget _buildMatrixItem(String label, String value) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.07),
         borderRadius: BorderRadius.circular(10),
@@ -999,8 +1000,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: Colors.white54, fontSize: 10)),
-          Text(value, style: const TextStyle(color: Color(0xFF4ADE80), fontSize: 11, fontWeight: FontWeight.bold)),
+          Text(label, style: const TextStyle(color: Colors.white54, fontSize: 9)),
+          Text(value, style: const TextStyle(color: Color(0xFF4ADE80), fontSize: 10, fontWeight: FontWeight.bold)),
         ],
       ),
     );
