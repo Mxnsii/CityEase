@@ -15,6 +15,7 @@ class PGListing {
   final String gender;          // 'Male', 'Female', 'Unisex'
   final bool foodIncluded;
   final bool hasAc;
+  final String? placeId;
 
   const PGListing({
     required this.name,
@@ -33,5 +34,6 @@ class PGListing {
     required this.gender,
     required this.foodIncluded,
     required this.hasAc,
+    this.placeId,
   });
 }

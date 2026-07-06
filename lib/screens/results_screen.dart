@@ -1999,29 +1999,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 ),
                 const SizedBox(height: 8),
 
-                // 12. Reviews Preview text snippet (Point 12)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1B1B3A),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: const [
-                      Icon(Icons.format_quote_rounded, size: 10, color: Color(0xFF8C88FF)),
-                      SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          '"Food is excellent and safety is top notch."',
-                          style: TextStyle(color: Colors.white70, fontSize: 9, fontStyle: FontStyle.italic),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
+
 
                 // Amenity Icons row (Point 3)
                 if (amenityIcons.isNotEmpty) ...[

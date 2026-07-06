@@ -56,11 +56,7 @@ class _PgDetailsScreenState extends State<PgDetailsScreen> {
     {'type': '3-Sharing Room', 'price': 7800, 'deposit': 15000, 'availability': 'Available'},
   ];
 
-  // Mock Reviews (Point 18)
-  final List<Map<String, dynamic>> _reviews = [
-    {'name': 'Anjali Sharma', 'rating': 5, 'comment': 'Clean rooms and delicious food. Highly recommended!', 'date': '2 weeks ago'},
-    {'name': 'Rohan Das', 'rating': 4, 'comment': 'Great amenities, Wi-Fi is super fast. Security is top notch.', 'date': '1 month ago'},
-  ];
+  final List<Map<String, dynamic>> _reviews = [];
 
   bool get _useFlutterMap {
     return kIsWeb || <TargetPlatform>[
@@ -79,6 +75,33 @@ class _PgDetailsScreenState extends State<PgDetailsScreen> {
     _setupInitialMarkers();
     _fetchAmenities();
     _loadFavorites();
+    _fetchLiveReviews();
+  }
+
+  Future<void> _fetchLiveReviews() async {
+    if (widget.pg.placeId == null || widget.pg.placeId == 'YOUR_PLACE_ID') return;
+    try {
+      final details = await _placesService.getPlaceDetails(widget.pg.placeId!);
+      if (details?.reviews != null) {
+        final List<Map<String, dynamic>> loadedReviews = [];
+        for (var rev in details!.reviews!) {
+          loadedReviews.add({
+            'name': rev.authorName ?? 'Anonymous User',
+            'rating': rev.rating ?? 4,
+            'comment': rev.text ?? '',
+            'date': rev.relativeTimeDescription ?? 'Recently',
+          });
+        }
+        if (mounted) {
+          setState(() {
+            _reviews.clear();
+            _reviews.addAll(loadedReviews);
+          });
+        }
+      }
+    } catch (e) {
+      // Keep reviews empty on exception
+    }
   }
 
   Future<void> _loadFavorites() async {
@@ -396,40 +419,41 @@ class _PgDetailsScreenState extends State<PgDetailsScreen> {
                           ),
                           const SizedBox(height: 24),
 
-                          // Reviews Section (Point 18)
-                          const Text('User Reviews', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 12),
-                          Column(
-                            children: _reviews.map((rev) {
-                              return Container(
-                                margin: const EdgeInsets.only(bottom: 10),
-                                padding: const EdgeInsets.all(14),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF11162D),
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(rev['name'], style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)),
-                                        Row(
-                                          children: List.generate(rev['rating'], (_) => const Icon(Icons.star, size: 12, color: Color(0xFFFFD43F))),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(rev['comment'], style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.4)),
-                                    const SizedBox(height: 6),
-                                    Text(rev['date'], style: const TextStyle(color: Colors.white38, fontSize: 10)),
-                                  ],
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                          const SizedBox(height: 24),
+                          if (_reviews.isNotEmpty) ...[
+                            const Text('User Reviews', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 12),
+                            Column(
+                              children: _reviews.map((rev) {
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 10),
+                                  padding: const EdgeInsets.all(14),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF11162D),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(rev['name'], style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)),
+                                          Row(
+                                            children: List.generate(rev['rating'], (_) => const Icon(Icons.star, size: 12, color: Color(0xFFFFD43F))),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(rev['comment'], style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.4)),
+                                      const SizedBox(height: 6),
+                                      Text(rev['date'], style: const TextStyle(color: Colors.white38, fontSize: 10)),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 24),
+                          ],
                           
                           const Text('Nearby Highlights', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                           const SizedBox(height: 12),

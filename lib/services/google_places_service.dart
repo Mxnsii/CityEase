@@ -125,6 +125,7 @@ class GooglePlacesService {
         vibe: 'Vibrant and secure co-living environment close to your office at $officeArea.',
         safetyScore: (8 + (i % 3)).toDouble(),
         source: 'Google Places API',
+        placeId: res.placeId,
         amenities: amenitiesList,
       ));
     }
