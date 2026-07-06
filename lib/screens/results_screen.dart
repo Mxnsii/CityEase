@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:google_place/google_place.dart';
 import 'package:flutter_map/flutter_map.dart' as flutter_map;
 import 'package:latlong2/latlong.dart' as ll;
 
@@ -73,6 +74,14 @@ class _ResultsScreenState extends State<ResultsScreen> {
   String _sortBy = 'Best Match';
   bool _showFavoritesOnly = false;
 
+  late double _currentOfficeLat;
+  late double _currentOfficeLng;
+  late String _currentOfficeArea;
+  late String _currentOfficeLocation;
+  final TextEditingController _assistantSearchController = TextEditingController();
+  List<AutocompletePrediction> _assistantPredictions = [];
+  bool _isSearchingPlace = false;
+
   // Map markers state
   final Set<Marker> _googleMarkers = {};
   final List<flutter_map.Marker> _flutterMarkers = [];
@@ -98,6 +107,10 @@ class _ResultsScreenState extends State<ResultsScreen> {
     _filterAc = widget.criteria.acRequired;
     _filterFood = widget.criteria.foodIncluded;
     _filterGender = widget.criteria.gender;
+    _currentOfficeLat = widget.criteria.officeLat;
+    _currentOfficeLng = widget.criteria.officeLng;
+    _currentOfficeArea = widget.criteria.officeArea;
+    _currentOfficeLocation = widget.criteria.officeLocation;
     _computeData(forceRefresh: true);
     _loadFavorites();
   }
@@ -120,6 +133,12 @@ class _ResultsScreenState extends State<ResultsScreen> {
     });
     await prefs.setStringList('favorite_pg_names', _favoritePgNames);
     _computeData();
+  }
+
+  @override
+  void dispose() {
+    _assistantSearchController.dispose();
+    super.dispose();
   }
 
   void _resetFilters() {
@@ -169,11 +188,11 @@ class _ResultsScreenState extends State<ResultsScreen> {
         });
       }
       try {
-        final fetched = await _placesService.fetchRealPgsNear(
-          widget.criteria.officeLat,
-          widget.criteria.officeLng,
-          widget.criteria.officeArea,
-        );
+          final fetched = await _placesService.fetchRealPgsNear(
+            _currentOfficeLat,
+            _currentOfficeLng,
+            _currentOfficeArea,
+          );
         _allFetchedRealPgs = fetched;
       } catch (e) {
         if (kDebugMode) {
@@ -199,8 +218,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
         continue;
       }
 
-      final distance = GeoUtils.calculateDistanceKm(
-          widget.criteria.officeLat, widget.criteria.officeLng, pg.lat, pg.lng);
+          final distance = GeoUtils.calculateDistanceKm(
+            _currentOfficeLat, _currentOfficeLng, pg.lat, pg.lng);
       final commuteTime = GeoUtils.calculateCommuteMinutes(distance);
 
       final hasWifi = pg.amenities.any((a) => a.toLowerCase().contains('wi-fi'));
@@ -295,8 +314,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
       // 18. Assign dynamic lifestyle tags
       String lifestyle = 'Perfect for IT Professionals';
-      if (widget.criteria.officeLocation.toLowerCase().contains('electronic city') || 
-          widget.criteria.officeLocation.toLowerCase().contains('whitefield')) {
+      if (_currentOfficeLocation.toLowerCase().contains('electronic city') || 
+          _currentOfficeLocation.toLowerCase().contains('whitefield')) {
         lifestyle = 'Near Major Tech Parks';
       } else if (pg.vibe.toLowerCase().contains('quiet') || pg.vibe.toLowerCase().contains('peaceful')) {
         lifestyle = 'Peaceful Area';
@@ -364,7 +383,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
     _googleMarkers.add(
       Marker(
         markerId: const MarkerId('office_pin'),
-        position: LatLng(widget.criteria.officeLat, widget.criteria.officeLng),
+        position: LatLng(_currentOfficeLat, _currentOfficeLng),
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
         infoWindow: const InfoWindow(title: 'Your Office'),
       ),
@@ -373,6 +392,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
     _flutterMarkers.add(
       flutter_map.Marker(
         point: ll.LatLng(widget.criteria.officeLat, widget.criteria.officeLng),
+        point: ll.LatLng(_currentOfficeLat, _currentOfficeLng),
+        point: ll.LatLng(_currentOfficeLat, _currentOfficeLng),
         width: 40,
         height: 40,
         builder: (context) => const Icon(Icons.work, color: Colors.blueAccent, size: 36),
@@ -589,7 +610,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
           _buildSummaryListItem('Short office commute preferred (${widget.criteria.distancePref})', true),
           const SizedBox(height: 14),
           Text(
-            '🎉 We found ${_exactMatches.isNotEmpty ? _exactMatches.length : _fallbackMatches.length} stays matching your exact lifestyle choices.',
+            '🎉 We found ${_exactMatches.isNotEmpty ? _exactMatches.length : _fallbackMatches.length} stays matching your exact lifestyle choices near ${_currentOfficeArea}.',
             style: const TextStyle(color: AppTheme.accentColorLight, fontSize: 13, fontWeight: FontWeight.bold),
           ),
         ],
@@ -849,8 +870,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
                               MaterialPageRoute(
                                 builder: (_) => PgDetailsScreen(
                                   pg: item.pg,
-                                  officeLat: widget.criteria.officeLat,
-                                  officeLng: widget.criteria.officeLng,
+                                  officeLat: _currentOfficeLat,
+                                  officeLng: _currentOfficeLng,
                                 ),
                               ),
                             );
@@ -1122,13 +1143,13 @@ class _ResultsScreenState extends State<ResultsScreen> {
     final allStays = _exactMatches.isNotEmpty ? _exactMatches : _fallbackMatches;
     final firstPg = allStays.isNotEmpty ? allStays.first : null;
     
-    final centerLat = firstPg != null ? (firstPg.pg.lat + widget.criteria.officeLat) / 2 : widget.criteria.officeLat;
-    final centerLng = firstPg != null ? (firstPg.pg.lng + widget.criteria.officeLng) / 2 : widget.criteria.officeLng;
+    final centerLat = firstPg != null ? (firstPg.pg.lat + _currentOfficeLat) / 2 : _currentOfficeLat;
+    final centerLng = firstPg != null ? (firstPg.pg.lng + _currentOfficeLng) / 2 : _currentOfficeLng;
 
-    double minLat = widget.criteria.officeLat;
-    double maxLat = widget.criteria.officeLat;
-    double minLng = widget.criteria.officeLng;
-    double maxLng = widget.criteria.officeLng;
+    double minLat = _currentOfficeLat;
+    double maxLat = _currentOfficeLat;
+    double minLng = _currentOfficeLng;
+    double maxLng = _currentOfficeLng;
 
     for (var item in allStays) {
       if (item.pg.lat < minLat) minLat = item.pg.lat;
@@ -1269,6 +1290,10 @@ class _ResultsScreenState extends State<ResultsScreen> {
                       _computeData();
                     });
                   }),
+                  _buildAssistantCannedRow('📍 Search a new place and refresh nearby PGs', () {
+                    Navigator.of(context).pop();
+                    _showAssistantPlaceSearch(context);
+                  }),
                   _buildAssistantCannedRow('📍 Filter for nearest walking distance (<1km)', () {
                     Navigator.of(context).pop();
                     setState(() {
@@ -1276,6 +1301,150 @@ class _ResultsScreenState extends State<ResultsScreen> {
                       _computeData();
                     });
                   }),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _showAssistantPlaceSearch(BuildContext context) async {
+    _assistantSearchController.text = '';
+    _assistantPredictions = [];
+    _isSearchingPlace = false;
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF11142B),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      isScrollControlled: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setPlaceState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: const [
+                      Icon(Icons.place, color: AppTheme.accentColorLight, size: 22),
+                      SizedBox(width: 8),
+                      Text(
+                        'Search a new place',
+                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Type a location to update nearby PG recommendations instantly.',
+                    style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
+                  ),
+                  const SizedBox(height: 18),
+                  TextField(
+                    controller: _assistantSearchController,
+                    style: const TextStyle(color: Colors.white),
+                    cursorColor: AppTheme.accentColorLight,
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: const Color(0xFF0F1225),
+                      hintText: 'Search for a neighborhood, office or landmark',
+                      hintStyle: const TextStyle(color: Colors.white38),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(color: AppTheme.borderTranslucent),
+                      ),
+                      suffixIcon: _isSearchingPlace
+                          ? const Padding(
+                              padding: EdgeInsets.all(12),
+                              child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accentColorLight),
+                            )
+                          : const Icon(Icons.search, color: Colors.white54),
+                    ),
+                    onChanged: (value) async {
+                      final typed = value.trim();
+                      if (typed.isEmpty) {
+                        setPlaceState(() {
+                          _assistantPredictions = [];
+                        });
+                        return;
+                      }
+                      setPlaceState(() {
+                        _isSearchingPlace = true;
+                      });
+                      final results = await _placesService.autocomplete(value);
+                      if (!mounted) return;
+                      setPlaceState(() {
+                        _assistantPredictions = results;
+                        _isSearchingPlace = false;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  if (_assistantPredictions.isNotEmpty)
+                    SizedBox(
+                      height: 300,
+                      child: ListView.separated(
+                        padding: EdgeInsets.zero,
+                        itemCount: _assistantPredictions.length,
+                        separatorBuilder: (context, index) => const SizedBox(height: 8),
+                        itemBuilder: (context, index) {
+                          final prediction = _assistantPredictions[index];
+                          return InkWell(
+                            onTap: () async {
+                              if (prediction.placeId == null) return;
+                              final details = await _placesService.getPlaceDetails(prediction.placeId!);
+                              if (details?.geometry?.location == null) return;
+                              setState(() {
+                                _currentOfficeLat = details!.geometry!.location!.lat!;
+                                _currentOfficeLng = details.geometry!.location!.lng!;
+                                _currentOfficeArea = prediction.description ?? _currentOfficeArea;
+                                _currentOfficeLocation = prediction.description ?? _currentOfficeLocation;
+                              });
+                              Navigator.of(context).pop();
+                              _computeData(forceRefresh: true);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                              decoration: BoxDecoration(
+                                color: AppTheme.secondaryBackground,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: AppTheme.borderTranslucent),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(prediction.description ?? '', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                  const SizedBox(height: 4),
+                                  const Text('Tap to load nearby PGs', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    )
+                  else
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 30),
+                      alignment: Alignment.center,
+                      child: const Text(
+                        'Search any city landmark or office area to refresh the recommendations.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.white38, fontSize: 12),
+                      ),
+                    ),
                 ],
               ),
             );
@@ -1324,7 +1493,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _buildPrefChip('📍 ${widget.criteria.officeLocation.split(',').first}'),
+              _buildPrefChip('📍 ${_currentOfficeLocation.split(',').first}'),
               _buildPrefChip('💰 ${widget.criteria.budget}'),
               _buildPrefChip('👩 ${widget.criteria.gender.replaceAll(' Only', '')}'),
               _buildPrefChip('🍛 ${widget.criteria.foodIncluded ? "Food Incl." : "No Food"}'),
@@ -1543,10 +1712,10 @@ class _ResultsScreenState extends State<ResultsScreen> {
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => SavedPgsScreen(
-                    officeLat: widget.criteria.officeLat,
-                    officeLng: widget.criteria.officeLng,
-                    officeArea: widget.criteria.officeArea,
-                  ),
+                      officeLat: _currentOfficeLat,
+                      officeLng: _currentOfficeLng,
+                      officeArea: _currentOfficeArea,
+                    ),
                 ),
               ).then((_) => _loadFavorites());
             },
@@ -1588,8 +1757,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
                           MaterialPageRoute(
                             builder: (_) => CompareScreen(
                               pgs: _selectedComparePgs,
-                              officeLat: widget.criteria.officeLat,
-                              officeLng: widget.criteria.officeLng,
+                              officeLat: _currentOfficeLat,
+                              officeLng: _currentOfficeLng,
                             ),
                           ),
                         );
@@ -1629,7 +1798,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     ),
                     const SizedBox(height: 24),
                     Text(
-                      'Querying live properties near ${widget.criteria.officeArea}...',
+                      'Querying live properties near ${_currentOfficeArea}...',
                       style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
@@ -1648,6 +1817,25 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 8),
+                      GlassCard(
+                        borderRadius: AppTheme.cardRadius,
+                        padding: const EdgeInsets.all(16),
+                        margin: const EdgeInsets.only(bottom: 14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Search smarter with a premium dark AI interface.',
+                              style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Discover the best PGs near ${_currentOfficeArea} without the noise.',
+                              style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+                            ),
+                          ],
+                        ),
+                      ),
                       _buildPreferencesCard(),
                       _buildHubTip(),
                       const SizedBox(height: 14),
@@ -1752,7 +1940,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                             ),
                             const SizedBox(height: 12),
                             SizedBox(
-                              height: 520,
+                              height: 360,
                               child: ListView.separated(
                                 scrollDirection: Axis.horizontal,
                                 physics: const BouncingScrollPhysics(),
@@ -1920,7 +2108,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                 child: Image.network(
                   item.pg.imageUrl,
-                  height: isFeatured ? 130 : 180,
+                  height: isFeatured ? 110 : 150,
                   width: double.infinity,
                   fit: BoxFit.cover,
                   errorBuilder: (c, o, s) => Container(
@@ -2205,8 +2393,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
                               MaterialPageRoute(
                                 builder: (_) => PgDetailsScreen(
                                   pg: item.pg,
-                                  officeLat: widget.criteria.officeLat,
-                                  officeLng: widget.criteria.officeLng,
+                                  officeLat: _currentOfficeLat,
+                                  officeLng: _currentOfficeLng,
                                 ),
                               ),
                             );
@@ -2262,7 +2450,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
   }
 
   Widget _buildHubTip() {
-    final loc = widget.criteria.officeLocation.toLowerCase();
+    final loc = _currentOfficeLocation.toLowerCase();
     String? hub;
     String? recommendations;
     if (loc.contains('electronic city')) {
