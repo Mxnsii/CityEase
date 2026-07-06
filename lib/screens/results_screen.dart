@@ -667,7 +667,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 Icon(Icons.emoji_events_rounded, color: Colors.black, size: 14),
                 SizedBox(width: 6),
                 Text(
-                  '🏆 AI BEST PICK',
+                  '🏆 PRIORITY MATCH (AI BEST PICK)',
                   style: TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5),
                 ),
               ],
@@ -1264,19 +1264,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Search Preferences',
-                style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
-              ),
-              TextButton.icon(
-                onPressed: () => Navigator.of(context).pop(true),
-                icon: const Icon(Icons.edit_rounded, size: 14, color: Color(0xFF8C88FF)),
-                label: const Text('Edit Preferences', style: TextStyle(color: Color(0xFF8C88FF), fontSize: 12, fontWeight: FontWeight.bold)),
-              ),
-            ],
+          const Text(
+            'Search Preferences',
+            style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -1676,7 +1666,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                           // Other Best matches (remaining top3 items)
                           if (top3.isNotEmpty) ...[
                             const Text(
-                              '⭐ Other Top Matches',
+                              '⭐ Priority Matches For You',
                               style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 12),
@@ -1698,7 +1688,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                           // 📋 Remaining PGs Grid
                           if (others.isNotEmpty) ...[
                             const Text(
-                              '📋 Remaining Matching PGs',
+                              '✨ Stays You May Also Like to Explore',
                               style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 12),
