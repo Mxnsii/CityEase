@@ -73,6 +73,8 @@ class _SavedPgsScreenState extends State<SavedPgsScreen> {
         commuteMinutes: commuteTime,
         matches: matches,
         mismatches: [],
+        personalityTag: 'Saved Stay',
+        lifestyleTag: 'Verified Room',
       ));
     }
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/survey_criteria.dart';
 import 'results_screen.dart';
@@ -13,29 +14,61 @@ class AiLoadingScreen extends StatefulWidget {
 
 class _AiLoadingScreenState extends State<AiLoadingScreen> {
   int _currentStepIndex = 0;
+  double _progress = 0.0;
+  bool _cursorVisible = true;
+  Timer? _cursorTimer;
+  Timer? _progressTimer;
+
   final List<String> _steps = [
-    'Reading your preferences',
-    'Finding nearby PGs',
-    'Calculating match score',
+    'Understanding your preferences',
+    'Searching 5,000+ PGs in India',
+    'Calculating compatibility scores',
     'Ranking recommendations',
+    'Finalizing perfect matches',
   ];
 
   @override
   void initState() {
     super.initState();
+    _startCursorBlink();
     _startAnimation();
   }
 
+  @override
+  void dispose() {
+    _cursorTimer?.cancel();
+    _progressTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startCursorBlink() {
+    _cursorTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
+      setState(() {
+        _cursorVisible = !_cursorVisible;
+      });
+    });
+  }
+
   Future<void> _startAnimation() async {
+    const stepDuration = Duration(milliseconds: 600);
+    
+    // Progress bar animation
+    _progressTimer = Timer.periodic(const Duration(milliseconds: 30), (timer) {
+      setState(() {
+        if (_progress < 1.0) {
+          _progress += 0.01;
+        }
+      });
+    });
+
     for (int i = 0; i < _steps.length; i++) {
-      await Future.delayed(const Duration(milliseconds: 600));
+      await Future.delayed(stepDuration);
       if (!mounted) return;
       setState(() {
         _currentStepIndex = i + 1;
       });
     }
 
-    // Short delay before transitioning to ResultsScreen
     await Future.delayed(const Duration(milliseconds: 400));
     if (!mounted) return;
 
@@ -63,60 +96,94 @@ class _AiLoadingScreenState extends State<AiLoadingScreen> {
       body: SafeArea(
         child: Center(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
+            padding: const EdgeInsets.symmetric(horizontal: 28),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Glowing AI Brain Icon
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF6F5CFF).withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: const Color(0xFF6F5CFF).withValues(alpha: 0.35),
-                      width: 2,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF6F5CFF).withValues(alpha: 0.15),
-                        blurRadius: 30,
-                        spreadRadius: 5,
+                // Glowing Chatbot bubble
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF6F5CFF).withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: const Color(0xFF6F5CFF).withValues(alpha: 0.3),
+                        width: 1.5,
                       ),
-                    ],
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF6F5CFF).withValues(alpha: 0.15),
+                          blurRadius: 30,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.auto_awesome_rounded,
+                      color: Color(0xFF8C88FF),
+                      size: 40,
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.auto_awesome_rounded,
-                    color: Color(0xFF8C88FF),
-                    size: 48,
+                ),
+                const SizedBox(height: 36),
+                
+                // ChatGPT style thinking header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      'CityEase AI is thinking',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    Opacity(
+                      opacity: _cursorVisible ? 1.0 : 0.0,
+                      child: Container(
+                        margin: const EdgeInsets.only(left: 4, top: 4),
+                        width: 8,
+                        height: 18,
+                        color: const Color(0xFF8C88FF),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                const Center(
+                  child: Text(
+                    'Narrowing down 5,000+ stays across India...',
+                    style: TextStyle(color: Colors.white38, fontSize: 13),
+                  ),
+                ),
+                const SizedBox(height: 36),
+
+                // Premium Progress Indicator Bar
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: LinearProgressIndicator(
+                    value: _progress.clamp(0.0, 1.0),
+                    backgroundColor: const Color(0xFF1B2048),
+                    color: const Color(0xFF6F5CFF),
+                    minHeight: 6,
                   ),
                 ),
                 const SizedBox(height: 32),
-                const Text(
-                  'Finding your perfect PG...',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'CityEase AI is searching matching stays',
-                  style: TextStyle(color: Colors.white38, fontSize: 13),
-                ),
-                const SizedBox(height: 48),
 
-                // Checklist Steps
+                // ChatGPT thinking list container
                 Container(
+                  width: double.infinity,
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     color: const Color(0xFF11142B),
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: const Color(0xFF20254D)),
                   ),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: List.generate(_steps.length, (index) {
                       final isCompleted = _currentStepIndex > index;
                       final isCurrent = _currentStepIndex == index;
@@ -127,14 +194,14 @@ class _AiLoadingScreenState extends State<AiLoadingScreen> {
                           children: [
                             AnimatedContainer(
                               duration: const Duration(milliseconds: 300),
-                              width: 20,
-                              height: 20,
+                              width: 18,
+                              height: 18,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: isCompleted
-                                    ? const Color(0xFF4ADE80).withValues(alpha: 0.2)
+                                    ? const Color(0xFF4ADE80).withValues(alpha: 0.15)
                                     : isCurrent
-                                        ? const Color(0xFF6F5CFF).withValues(alpha: 0.2)
+                                        ? const Color(0xFF6F5CFF).withValues(alpha: 0.15)
                                         : Colors.transparent,
                                 border: Border.all(
                                   color: isCompleted
@@ -149,13 +216,13 @@ class _AiLoadingScreenState extends State<AiLoadingScreen> {
                                 child: isCompleted
                                     ? const Icon(
                                         Icons.check,
-                                        size: 12,
+                                        size: 10,
                                         color: Color(0xFF4ADE80),
                                       )
                                     : isCurrent
                                         ? const SizedBox(
-                                            width: 8,
-                                            height: 8,
+                                            width: 6,
+                                            height: 6,
                                             child: CircularProgressIndicator(
                                               strokeWidth: 1.5,
                                               color: Color(0xFF6F5CFF),
@@ -164,7 +231,7 @@ class _AiLoadingScreenState extends State<AiLoadingScreen> {
                                         : const SizedBox.shrink(),
                               ),
                             ),
-                            const SizedBox(width: 14),
+                            const SizedBox(width: 12),
                             Text(
                               _steps[index],
                               style: TextStyle(
@@ -173,7 +240,7 @@ class _AiLoadingScreenState extends State<AiLoadingScreen> {
                                     : isCurrent
                                         ? const Color(0xFF8C88FF)
                                         : Colors.white38,
-                                fontSize: 14,
+                                fontSize: 13,
                                 fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
                               ),
                             ),

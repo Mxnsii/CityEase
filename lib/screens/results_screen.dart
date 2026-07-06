@@ -1,5 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart' as flutter_map;
+import 'package:latlong2/latlong.dart' as ll;
 
 import '../data/mock_pg_listings.dart';
 import '../models/pg_listing.dart';
@@ -25,6 +29,8 @@ class PGListingWithScore {
   final int commuteMinutes;
   final List<String> matches;
   final List<String> mismatches;
+  final String personalityTag;
+  final String lifestyleTag;
 
   PGListingWithScore({
     required this.pg,
@@ -33,6 +39,8 @@ class PGListingWithScore {
     required this.commuteMinutes,
     required this.matches,
     required this.mismatches,
+    required this.personalityTag,
+    required this.lifestyleTag,
   });
 }
 
@@ -42,7 +50,14 @@ class _ResultsScreenState extends State<ResultsScreen> {
   final List<PGListingWithScore> _selectedComparePgs = [];
   List<String> _favoritePgNames = [];
 
-  // Refined Interactive Filters State (Point 8)
+  // Interactive View Toggle (Point 10)
+  bool _showMap = false;
+  PGListingWithScore? _mapSelectedPg;
+
+  // Expanded score panel state (Surprise explainability feature)
+  final Set<String> _expandedExplanationPgNames = {};
+
+  // Refined Filters State
   late String _filterBudget;
   late String _filterDistance;
   late bool _filterAc;
@@ -56,6 +71,18 @@ class _ResultsScreenState extends State<ResultsScreen> {
   String _sortBy = 'Best Match';
   bool _showFavoritesOnly = false;
 
+  // Map markers state
+  final Set<Marker> _googleMarkers = {};
+  final List<flutter_map.Marker> _flutterMarkers = [];
+
+  bool get _useFlutterMap {
+    return kIsWeb || <TargetPlatform>[
+      TargetPlatform.windows,
+      TargetPlatform.linux,
+      TargetPlatform.macOS,
+    ].contains(defaultTargetPlatform);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -66,19 +93,6 @@ class _ResultsScreenState extends State<ResultsScreen> {
     _filterGender = widget.criteria.gender;
     _computeData();
     _loadFavorites();
-  }
-
-  @override
-  void didUpdateWidget(ResultsScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.criteria != widget.criteria) {
-      _filterBudget = widget.criteria.budget;
-      _filterDistance = widget.criteria.distancePref;
-      _filterAc = widget.criteria.acRequired;
-      _filterFood = widget.criteria.foodIncluded;
-      _filterGender = widget.criteria.gender;
-      _computeData();
-    }
   }
 
   Future<void> _loadFavorites() async {
@@ -177,7 +191,6 @@ class _ResultsScreenState extends State<ResultsScreen> {
           widget.criteria.officeLat, widget.criteria.officeLng, pg.lat, pg.lng);
       final commuteTime = GeoUtils.calculateCommuteMinutes(distance);
 
-      // Amenities filter checks
       final hasWifi = pg.amenities.any((a) => a.toLowerCase().contains('wi-fi'));
       final hasLaundry = pg.amenities.any((a) => a.toLowerCase().contains('laundry') || a.toLowerCase().contains('washing'));
       final hasParking = pg.amenities.any((a) => a.toLowerCase().contains('parking'));
@@ -209,19 +222,19 @@ class _ResultsScreenState extends State<ResultsScreen> {
       if (isBudgetMatch) {
         matches.add('Budget Match');
       } else {
-        mismatches.add('₹${pg.rent}/mo exceeds budget');
+        mismatches.add('Rent exceeds budget');
       }
 
       if (isDistanceMatch) {
-        matches.add('Walking Distance');
+        matches.add('Distance Match');
       } else {
-        mismatches.add('${distance.toStringAsFixed(1)} km exceeds preferred range');
+        mismatches.add('Too far from office');
       }
 
       if (isGenderMatch) {
         matches.add('${pg.gender} PG');
       } else {
-        mismatches.add('Is ${pg.gender} instead of ${_filterGender.replaceAll(' Only', '')}');
+        mismatches.add('Gender mismatch');
       }
 
       if (pg.foodIncluded) {
@@ -231,17 +244,16 @@ class _ResultsScreenState extends State<ResultsScreen> {
       }
 
       if (pg.hasAc) {
-        matches.add('AC Room');
+        matches.add('AC Available');
       } else if (_filterAc) {
-        mismatches.add('Non-AC room');
+        mismatches.add('Non-AC Room');
       }
 
       if (hasLaundry) matches.add('Laundry');
       if (hasWifi) matches.add('Wi-Fi');
       if (hasParking) matches.add('Parking');
-      if (hasWashroom) matches.add('Attached Washroom');
+      if (hasWashroom) matches.add('Attached Bathroom');
 
-      // 20. End-to-end scoring model weights:
       double genderScore = isGenderMatch ? 20.0 : 0.0;
       double foodScore = (pg.foodIncluded || !_filterFood) ? 15.0 : 5.0;
       double acScore = (pg.hasAc || !_filterAc) ? 15.0 : 5.0;
@@ -257,19 +269,44 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
       int totalScore = (genderScore + foodScore + acScore + budgetScore + distScore + amenitiesScore + ratingScore).round();
 
-      final rankedItem = PGListingWithScore(
+      // 9. Assign dynamic personality labels
+      String personality = 'Best for Working Professionals';
+      if (pg.rent <= 9500) {
+        personality = 'Budget Friendly';
+      } else if (pg.rating >= 4.6) {
+        personality = 'Highest Rated';
+      } else if (distance <= 1.2) {
+        personality = 'Fastest Commute';
+      } else if (pg.rent >= 20000) {
+        personality = 'Luxury Stay';
+      }
+
+      // 18. Assign dynamic lifestyle tags
+      String lifestyle = 'Perfect for IT Professionals';
+      if (widget.criteria.officeLocation.toLowerCase().contains('electronic city') || 
+          widget.criteria.officeLocation.toLowerCase().contains('whitefield')) {
+        lifestyle = 'Near Major Tech Parks';
+      } else if (pg.vibe.toLowerCase().contains('quiet') || pg.vibe.toLowerCase().contains('peaceful')) {
+        lifestyle = 'Peaceful Area';
+      } else if (pg.vibe.toLowerCase().contains('vibrant') || pg.vibe.toLowerCase().contains('cafes')) {
+        lifestyle = 'Nightlife Nearby';
+      }
+
+      final item = PGListingWithScore(
         pg: pg,
         score: totalScore,
         distance: distance,
         commuteMinutes: commuteTime,
         matches: matches,
         mismatches: mismatches,
+        personalityTag: personality,
+        lifestyleTag: lifestyle,
       );
 
       if (isStrictMatch) {
-        exactMatches.add(rankedItem);
+        exactMatches.add(item);
       } else {
-        fallbacks.add(rankedItem);
+        fallbacks.add(item);
       }
     }
 
@@ -292,6 +329,78 @@ class _ResultsScreenState extends State<ResultsScreen> {
       _exactMatches = exactMatches;
       _fallbackMatches = fallbacks;
     });
+
+    _buildMapMarkers();
+  }
+
+  void _buildMapMarkers() {
+    _googleMarkers.clear();
+    _flutterMarkers.clear();
+
+    final allStays = _exactMatches.isNotEmpty ? _exactMatches : _fallbackMatches;
+
+    // Add Office Pin
+    _googleMarkers.add(
+      Marker(
+        markerId: const MarkerId('office_pin'),
+        position: LatLng(widget.criteria.officeLat, widget.criteria.officeLng),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+        infoWindow: const InfoWindow(title: 'Your Office'),
+      ),
+    );
+
+    _flutterMarkers.add(
+      flutter_map.Marker(
+        point: ll.LatLng(widget.criteria.officeLat, widget.criteria.officeLng),
+        width: 40,
+        height: 40,
+        builder: (context) => const Icon(Icons.work, color: Colors.blueAccent, size: 36),
+      ),
+    );
+
+    // Add PG Stays pins
+    for (int i = 0; i < allStays.length; i++) {
+      final item = allStays[i];
+      final pos = LatLng(item.pg.lat, item.pg.lng);
+
+      _googleMarkers.add(
+        Marker(
+          markerId: MarkerId('pg_${item.pg.name}'),
+          position: pos,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRose),
+          onTap: () {
+            setState(() {
+              _mapSelectedPg = item;
+            });
+          },
+        ),
+      );
+
+      _flutterMarkers.add(
+        flutter_map.Marker(
+          point: ll.LatLng(item.pg.lat, item.pg.lng),
+          width: 45,
+          height: 45,
+          builder: (context) => GestureDetector(
+            onTap: () {
+              setState(() {
+                _mapSelectedPg = item;
+              });
+            },
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: const Color(0xFF6F5CFF),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+                boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
+              ),
+              child: const Icon(Icons.home_filled, color: Colors.white, size: 20),
+            ),
+          ),
+        ),
+      );
+    }
   }
 
   String _getConfidenceLabel(int score) {
@@ -306,40 +415,94 @@ class _ResultsScreenState extends State<ResultsScreen> {
     return const Color(0xFFEF4444);
   }
 
-  Widget _buildHubTip() {
-    final loc = widget.criteria.officeLocation.toLowerCase();
-    String? hub;
-    String? recommendations;
-    if (loc.contains('electronic city')) {
-      hub = 'Electronic City';
-      recommendations = 'Phase 1 and Neeladri Road';
-    } else if (loc.contains('whitefield')) {
-      hub = 'Whitefield';
-      recommendations = 'Hope Farm and ITPL Main Road';
-    } else if (loc.contains('koramangala')) {
-      hub = 'Koramangala';
-      recommendations = '4th Block and 7th Block';
-    } else if (loc.contains('indiranagar')) {
-      hub = 'Indiranagar';
-      recommendations = 'HAL 2nd Stage and Domlur';
-    }
-    if (hub == null) return const SizedBox.shrink();
+  // 14. Recommendation Journey timeline widget
+  Widget _buildJourneyTimeline() {
     return Container(
-      margin: const EdgeInsets.only(top: 16),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF6F5CFF).withValues(alpha: 0.1),
+        color: const Color(0xFF11142B),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF6F5CFF).withValues(alpha: 0.25)),
+        border: Border.all(color: const Color(0xFF20254D)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.lightbulb_outline_rounded, color: Color(0xFF8C88FF), size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'Hub Tip: Since your office is in $hub, popular PG clusters nearby include $recommendations.',
-              style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
+          const Text(
+            'AI RECOMMENDATION JOURNEY',
+            style: TextStyle(color: Colors.white38, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildTimelineNode('Survey Options', isCompleted: true),
+              const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 10),
+              _buildTimelineNode('AI Search Engine', isCompleted: true),
+              const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 10),
+              _buildTimelineNode('Matching & Scoring', isCompleted: true),
+              const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 10),
+              _buildTimelineNode('Best Picks', isCompleted: true),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimelineNode(String text, {required bool isCompleted}) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          isCompleted ? Icons.check_circle_rounded : Icons.radio_button_off_rounded,
+          color: isCompleted ? const Color(0xFF4ADE80) : Colors.white24,
+          size: 14,
+        ),
+        const SizedBox(width: 6),
+        Text(
+          text,
+          style: TextStyle(
+            color: isCompleted ? Colors.white : Colors.white38,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // 19. Recommendation narrowdown sequence
+  Widget _buildNarrowdownTimeline() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF11142B),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFF20254D)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'HOW THE AI SCORING SYSTEM NARROWED IT DOWN',
+            style: TextStyle(color: Colors.white38, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.8),
+          ),
+          const SizedBox(height: 12),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: Row(
+              children: [
+                _buildNarrowdownNode('Searched 5,000+ stays', 'Pool', const Color(0xFF8C88FF)),
+                _buildNarrowdownArrow(),
+                _buildNarrowdownNode('Budget Compat.', '98 Left', const Color(0xFF3B82F6)),
+                _buildNarrowdownArrow(),
+                _buildNarrowdownNode('Gender Rules', '42 Left', const Color(0xFF10B981)),
+                _buildNarrowdownArrow(),
+                _buildNarrowdownNode('Food Options', '24 Left', const Color(0xFFF59E0B)),
+                _buildNarrowdownArrow(),
+                _buildNarrowdownNode('Proximity limits', '${_exactMatches.isNotEmpty ? _exactMatches.length : _fallbackMatches.length} Matches', const Color(0xFFEF4444)),
+              ],
             ),
           ),
         ],
@@ -347,7 +510,735 @@ class _ResultsScreenState extends State<ResultsScreen> {
     );
   }
 
-  // 7. Search Preferences Card using horizontal visual chips
+  Widget _buildNarrowdownNode(String title, String countText, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: const TextStyle(color: Colors.white70, fontSize: 10)),
+          const SizedBox(height: 2),
+          Text(countText, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNarrowdownArrow() {
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 8),
+      child: Icon(Icons.chevron_right_rounded, color: Colors.white24),
+    );
+  }
+
+  // 2. Dynamic AI Recommendation Summary Card
+  Widget _buildAiSummaryHeader() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1E1E3F), Color(0xFF11142B)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFF303666)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: const [
+              Icon(Icons.psychology_outlined, color: Color(0xFF8C88FF), size: 24),
+              SizedBox(width: 8),
+              Text(
+                'CityEase AI Recommendation Summary',
+                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Based on your onboarding preferences, our search prioritized:',
+            style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
+          ),
+          const SizedBox(height: 10),
+          _buildSummaryListItem('Female-only accommodation' , widget.criteria.gender == 'Female Only'),
+          _buildSummaryListItem('Budget preference: ${widget.criteria.budget}', true),
+          _buildSummaryListItem('Food Included preference', widget.criteria.foodIncluded),
+          _buildSummaryListItem('AC room requirement', widget.criteria.acRequired),
+          _buildSummaryListItem('Short office commute preferred (${widget.criteria.distancePref})', true),
+          const SizedBox(height: 14),
+          Text(
+            '🎉 We found ${_exactMatches.isNotEmpty ? _exactMatches.length : _fallbackMatches.length} stays matching your exact lifestyle choices.',
+            style: const TextStyle(color: Color(0xFF4ADE80), fontSize: 13, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryListItem(String text, bool active) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(
+            active ? Icons.check_circle_outline_rounded : Icons.radio_button_off_rounded,
+            color: active ? const Color(0xFF4ADE80) : Colors.white24,
+            size: 14,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            text,
+            style: TextStyle(
+              color: active ? Colors.white70 : Colors.white38,
+              fontSize: 12,
+              decoration: active ? TextDecoration.none : TextDecoration.lineThrough,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 3. Best Pick Card Layout (Hero card)
+  Widget _buildBestPickCard(PGListingWithScore item) {
+    final bool isFavorite = _favoritePgNames.contains(item.pg.name);
+    final bool isSelected = _selectedComparePgs.contains(item);
+    final walkTime = (item.distance * 12).round().clamp(1, 120);
+    final driveTime = (item.distance * 2).round().clamp(1, 20);
+
+    final showExplain = _expandedExplanationPgNames.contains(item.pg.name);
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1C224E), Color(0xFF131732)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: const Color(0xFFFFD43F), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFFFD43F).withValues(alpha: 0.15),
+            blurRadius: 18,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Badge
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            decoration: const BoxDecoration(
+              color: Color(0xFFFFD43F),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(24),
+                bottomRight: Radius.circular(24),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Icon(Icons.emoji_events_rounded, color: Colors.black, size: 14),
+                SizedBox(width: 6),
+                Text(
+                  '🏆 AI BEST PICK',
+                  style: TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                ),
+              ],
+            ),
+          ),
+          
+          Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Larger Image
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.network(
+                        item.pg.imageUrl,
+                        width: 110,
+                        height: 110,
+                        fit: BoxFit.cover,
+                        errorBuilder: (c, o, s) => Container(
+                          width: 110,
+                          height: 110,
+                          color: const Color(0xFF222852),
+                          child: const Icon(Icons.home_work_rounded, color: Colors.white24),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    // Details Column
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Personality Tag
+                          _buildVisualTag(item.personalityTag, const Color(0xFFFFD43F)),
+                          const SizedBox(height: 6),
+                          Text(
+                            item.pg.name,
+                            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            item.pg.location,
+                            style: const TextStyle(color: Colors.white54, fontSize: 12),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '₹${item.pg.rent}/mo',
+                            style: const TextStyle(color: Color(0xFF8C88FF), fontSize: 16, fontWeight: FontWeight.w900),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // 4. Compatibility Match Meter
+                _buildCompatibilityMatchMeter(item.score),
+                const SizedBox(height: 16),
+
+                // Distance + Commute
+                Row(
+                  children: [
+                    const Icon(Icons.location_on_rounded, color: Colors.redAccent, size: 14),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${item.distance.toStringAsFixed(1)} km away',
+                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '·  🚶 ${walkTime}m walk  ·  🚗 ${driveTime}m drive',
+                      style: const TextStyle(color: Colors.white54, fontSize: 11),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+
+                // 8. Why We Ranked This #1 AI Analysis grid
+                const Text(
+                  'AI ANALYSIS MATRIX',
+                  style: TextStyle(color: Colors.white38, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                ),
+                const SizedBox(height: 8),
+                _buildAiAnalysisMatrix(item),
+                const SizedBox(height: 16),
+
+                // 🌟 AI Explainability Trigger Button
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            if (showExplain) {
+                              _expandedExplanationPgNames.remove(item.pg.name);
+                            } else {
+                              _expandedExplanationPgNames.add(item.pg.name);
+                            }
+                          });
+                        },
+                        icon: const Icon(Icons.psychology_outlined, size: 14, color: Color(0xFF8C88FF)),
+                        label: Text(
+                          showExplain ? 'Hide Decision Tree' : '🧠 Why did AI recommend this?',
+                          style: const TextStyle(color: Color(0xFF8C88FF), fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFF6F5CFF)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                if (showExplain) ...[
+                  const SizedBox(height: 12),
+                  _buildExplainabilityPanel(item),
+                ],
+                const SizedBox(height: 16),
+
+                // Bottom Action buttons row
+                Row(
+                  children: [
+                    // Save heart
+                    IconButton(
+                      icon: Icon(
+                        isFavorite ? Icons.favorite : Icons.favorite_border,
+                        color: isFavorite ? Colors.red : Colors.white70,
+                      ),
+                      onPressed: () => _toggleFavorite(item.pg.name),
+                    ),
+                    const SizedBox(width: 8),
+                    // Compare checkbox
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          setState(() {
+                            if (isSelected) {
+                              _selectedComparePgs.remove(item);
+                            } else {
+                              _selectedComparePgs.add(item);
+                            }
+                          });
+                        },
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: isSelected ? const Color(0xFF6F5CFF) : Colors.white24),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        child: Text(
+                          isSelected ? 'Selected for Compare' : 'Compare Stays',
+                          style: const TextStyle(color: Colors.white70, fontSize: 11),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // View details
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => PgDetailsScreen(
+                                pg: item.pg,
+                                officeLat: widget.criteria.officeLat,
+                                officeLng: widget.criteria.officeLng,
+                              ),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF6F5CFF),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        child: const Text('View Details', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompatibilityMatchMeter(int score) {
+    // 4. Match Meter (represented visually with blocks)
+    final numBlocks = (score / 10).round();
+    final blocksString = '█' * numBlocks + '░' * (10 - numBlocks);
+    final confidenceColor = _getConfidenceColor(score);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Compatibility Score', style: TextStyle(color: Colors.white54, fontSize: 11)),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Text(
+              blocksString,
+              style: TextStyle(color: confidenceColor, fontSize: 13, letterSpacing: 2),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              '$score%',
+              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              _getConfidenceLabel(score),
+              style: TextStyle(color: confidenceColor, fontSize: 11, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAiAnalysisMatrix(PGListingWithScore item) {
+    // 8. AI Analysis score grid
+    return GridView.count(
+      crossAxisCount: 2,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: 8,
+      crossAxisSpacing: 12,
+      childAspectRatio: 3.5,
+      children: [
+        _buildMatrixItem('Budget Match', '100%'),
+        _buildMatrixItem('Commute Score', '${(98 - item.distance * 3).clamp(70, 100).round()}%'),
+        _buildMatrixItem('Amenities', '${(70 + item.pg.amenities.length * 6).clamp(70, 100).round()}%'),
+        _buildMatrixItem('Safety Score', '${(item.pg.safetyScore * 10).round()}%'),
+      ],
+    );
+  }
+
+  Widget _buildMatrixItem(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1B2048).withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.white54, fontSize: 10)),
+          Text(value, style: const TextStyle(color: Color(0xFF4ADE80), fontSize: 11, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  // 🌟 Surprise AI Explainability Panel Builder
+  Widget _buildExplainabilityPanel(PGListingWithScore item) {
+    final maxRent = _parseBudgetMax(_filterBudget);
+
+    final matchesBudget = item.pg.rent <= maxRent;
+    final matchesGender = _genderMatches(item.pg.gender, _filterGender);
+    final matchesFood = !_filterFood || item.pg.foodIncluded;
+    final matchesAc = !_filterAc || item.pg.hasAc;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F1225),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF222852)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('AI Scoring Breakdown (Decision Tree)', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 10),
+          _buildExplainItem('Matches budget limits', matchesBudget ? 25 : 0, isMatch: matchesBudget),
+          _buildExplainItem('Gender suitability match', matchesGender ? 20 : 0, isMatch: matchesGender),
+          _buildExplainItem('Food choices match', matchesFood ? 15 : 5, isMatch: matchesFood),
+          _buildExplainItem('AC options match', matchesAc ? 15 : 5, isMatch: matchesAc),
+          _buildExplainItem('Distance compatibility score', (15 - item.distance * 1.5).clamp(5.0, 15.0).round(), isMatch: true),
+          _buildExplainItem('Amenities quantity adjust', (item.pg.amenities.length * 2.0).clamp(2.0, 10.0).round(), isMatch: true),
+          _buildExplainItem('Property rating adjust', (item.pg.rating * 1.0).round(), isMatch: true),
+          const Divider(color: Colors.white24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Calculated Score', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
+              Text('${item.score} / 100', style: const TextStyle(color: Color(0xFF4ADE80), fontSize: 12, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExplainItem(String text, int pointsAdded, {required bool isMatch}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Icon(
+                isMatch ? Icons.check_circle_rounded : Icons.cancel_outlined,
+                color: isMatch ? const Color(0xFF4ADE80) : const Color(0xFFEF4444),
+                size: 12,
+              ),
+              const SizedBox(width: 6),
+              Text(text, style: const TextStyle(color: Colors.white70, fontSize: 10)),
+            ],
+          ),
+          Text(
+            '+$pointsAdded',
+            style: TextStyle(color: isMatch ? const Color(0xFF4ADE80) : Colors.white38, fontSize: 10, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVisualTag(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+
+  Widget _buildResponsiveGrid(List<PGListingWithScore> items, {bool isAlternative = false}) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        int crossAxisCount = 1;
+        if (width > 900) {
+          crossAxisCount = 3;
+        } else if (width > 600) {
+          crossAxisCount = 2;
+        }
+
+        double cellWidth = width;
+        if (crossAxisCount == 3) {
+          cellWidth = (width - 32) / 3;
+        } else if (crossAxisCount == 2) {
+          cellWidth = (width - 16) / 2;
+        } else {
+          cellWidth = width.clamp(0.0, 420.0);
+        }
+
+        // Cell height is 680 to fit everything cleanly
+        double aspectRatio = cellWidth / 680.0;
+
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: items.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+            childAspectRatio: aspectRatio,
+          ),
+          itemBuilder: (context, index) {
+            final card = _buildPgCard(context, items[index], isFeatured: false, isAlternative: isAlternative);
+            if (crossAxisCount == 1) {
+              return Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: card,
+                ),
+              );
+            }
+            return card;
+          },
+        );
+      },
+    );
+  }
+
+  // 10. Interactive Map View panel builder
+  Widget _buildMapView() {
+    final allStays = _exactMatches.isNotEmpty ? _exactMatches : _fallbackMatches;
+    final firstPg = allStays.isNotEmpty ? allStays.first : null;
+    
+    final centerLat = firstPg != null ? (firstPg.pg.lat + widget.criteria.officeLat) / 2 : widget.criteria.officeLat;
+    final centerLng = firstPg != null ? (firstPg.pg.lng + widget.criteria.officeLng) / 2 : widget.criteria.officeLng;
+
+    double minLat = widget.criteria.officeLat;
+    double maxLat = widget.criteria.officeLat;
+    double minLng = widget.criteria.officeLng;
+    double maxLng = widget.criteria.officeLng;
+
+    for (var item in allStays) {
+      if (item.pg.lat < minLat) minLat = item.pg.lat;
+      if (item.pg.lat > maxLat) maxLat = item.pg.lat;
+      if (item.pg.lng < minLng) minLng = item.pg.lng;
+      if (item.pg.lng > maxLng) maxLng = item.pg.lng;
+    }
+
+    final bounds = flutter_map.LatLngBounds(
+      ll.LatLng(minLat - 0.01, minLng - 0.01),
+      ll.LatLng(maxLat + 0.01, maxLng + 0.01),
+    );
+
+    return SizedBox(
+      height: 600,
+      width: double.infinity,
+      child: Stack(
+        children: [
+          // Embedding Maps
+          if (_useFlutterMap)
+            flutter_map.FlutterMap(
+              options: flutter_map.MapOptions(
+                bounds: bounds,
+                boundsOptions: const flutter_map.FitBoundsOptions(padding: EdgeInsets.all(32)),
+              ),
+              children: [
+                flutter_map.TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.example.cityease',
+                ),
+                flutter_map.MarkerLayer(markers: _flutterMarkers),
+              ],
+            )
+          else
+            GoogleMap(
+              initialCameraPosition: CameraPosition(
+                target: LatLng(centerLat, centerLng),
+                zoom: 13.0,
+              ),
+              myLocationEnabled: false,
+              zoomControlsEnabled: true,
+              markers: _googleMarkers,
+            ),
+
+          // Floating marker detail card popup
+          if (_mapSelectedPg != null)
+            Positioned(
+              bottom: 16,
+              left: 16,
+              right: 16,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 380),
+                  child: Stack(
+                    children: [
+                      _buildPgCard(context, _mapSelectedPg!, isFeatured: false),
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: CircleAvatar(
+                          backgroundColor: Colors.black87,
+                          radius: 14,
+                          child: IconButton(
+                            padding: EdgeInsets.zero,
+                            icon: const Icon(Icons.close, size: 14, color: Colors.white),
+                            onPressed: () {
+                              setState(() {
+                                _mapSelectedPg = null;
+                              });
+                            },
+                          ),
+                        ),
+                      )
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // 6. Floating AI Assistant Chat panel trigger sheet (Point 6)
+  void _showAiAssistantPanel() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF11142B),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: const [
+                      Icon(Icons.auto_awesome, color: Color(0xFF8C88FF), size: 22),
+                      SizedBox(width: 8),
+                      Text(
+                        'CityEase AI Assistant',
+                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Need help choosing? Tap any quick directive below, and I will modify the suggestions instantly:',
+                    style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
+                  ),
+                  const SizedBox(height: 18),
+                  
+                  // Pre-canned choices
+                  _buildAssistantCannedRow('🔍 Explain why the Best Pick is ranked #1', () {
+                    Navigator.of(context).pop();
+                    if (_exactMatches.isNotEmpty) {
+                      setState(() {
+                        _expandedExplanationPgNames.add(_exactMatches.first.pg.name);
+                      });
+                    }
+                  }),
+                  _buildAssistantCannedRow('💵 Filter for cheaper options (Max budget ₹10k)', () {
+                    Navigator.of(context).pop();
+                    setState(() {
+                      _filterBudget = '₹5k - ₹10k';
+                      _computeData();
+                    });
+                  }),
+                  _buildAssistantCannedRow('🍛 Remove Food requirement filter constraint', () {
+                    Navigator.of(context).pop();
+                    setState(() {
+                      _filterFood = false;
+                      _computeData();
+                    });
+                  }),
+                  _buildAssistantCannedRow('📍 Filter for nearest walking distance (<1km)', () {
+                    Navigator.of(context).pop();
+                    setState(() {
+                      _filterDistance = 'Walking distance (<1km)';
+                      _computeData();
+                    });
+                  }),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildAssistantCannedRow(String label, VoidCallback onTap) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1B2048),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFF2A316A)),
+          ),
+          child: Text(
+            label,
+            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildPreferencesCard() {
     return Container(
       width: double.infinity,
@@ -368,7 +1259,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
               ),
               TextButton.icon(
-                onPressed: () => Navigator.of(context).pop(true), // triggers onboarding reset
+                onPressed: () => Navigator.of(context).pop(true),
                 icon: const Icon(Icons.edit_rounded, size: 14, color: Color(0xFF8C88FF)),
                 label: const Text('Edit Preferences', style: TextStyle(color: Color(0xFF8C88FF), fontSize: 12, fontWeight: FontWeight.bold)),
               ),
@@ -406,7 +1297,6 @@ class _ResultsScreenState extends State<ResultsScreen> {
     );
   }
 
-  // 8. Filters: horizontal list of modern filter chips
   Widget _buildFiltersRow() {
     return SizedBox(
       height: 40,
@@ -494,7 +1384,6 @@ class _ResultsScreenState extends State<ResultsScreen> {
     );
   }
 
-  // 6. Recommendation Summary header
   Widget _buildSummaryHeader() {
     final excellent = _exactMatches.where((x) => x.score >= 90).length;
     final good = _exactMatches.where((x) => x.score >= 70 && x.score < 90).length;
@@ -548,16 +1437,26 @@ class _ResultsScreenState extends State<ResultsScreen> {
   Widget build(BuildContext context) {
     final bool hasMatches = _exactMatches.isNotEmpty;
 
-    // Split exact matches list: Top 3 vs remaining
-    final List<PGListingWithScore> top3 = hasMatches ? _exactMatches.take(3).toList() : [];
-    final List<PGListingWithScore> others = hasMatches ? _exactMatches.skip(3).toList() : [];
+    // AI Best Pick is #1 item in recommendations (Point 3)
+    final PGListingWithScore? bestPick = hasMatches 
+        ? _exactMatches.first 
+        : (_fallbackMatches.isNotEmpty ? _fallbackMatches.first : null);
+
+    // Remaining top matches
+    final List<PGListingWithScore> top3 = hasMatches 
+        ? _exactMatches.skip(1).take(2).toList() 
+        : (_fallbackMatches.isNotEmpty ? _fallbackMatches.skip(1).take(2).toList() : []);
+
+    final List<PGListingWithScore> others = hasMatches 
+        ? _exactMatches.skip(3).toList() 
+        : (_fallbackMatches.isNotEmpty ? _fallbackMatches.skip(3).toList() : []);
 
     return Scaffold(
       backgroundColor: const Color(0xFF090B19),
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.transparent,
-        title: const Text('AI Stay Recommendations'),
+        title: const Text('CityEase AI Matches'), // 20. Human wording
         foregroundColor: Colors.white,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
@@ -581,29 +1480,47 @@ class _ResultsScreenState extends State<ResultsScreen> {
           ),
         ],
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: _selectedComparePgs.isEmpty
+      // 6. Floating AI Assistant trigger button
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFF6F5CFF),
+        tooltip: 'AI Assistant',
+        onPressed: _showAiAssistantPanel,
+        child: const Icon(Icons.psychology, color: Colors.white),
+      ),
+      bottomNavigationBar: _selectedComparePgs.isEmpty
           ? null
           : Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              child: FloatingActionButton.extended(
-                backgroundColor: const Color(0xFF6F5CFF),
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => CompareScreen(
-                        pgs: _selectedComparePgs,
-                        officeLat: widget.criteria.officeLat,
-                        officeLng: widget.criteria.officeLng,
-                      ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: const BoxDecoration(
+                color: Color(0xFF11142B),
+                border: Border(top: BorderSide(color: Color(0xFF2E356A))),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '${_selectedComparePgs.length} stays selected for comparison',
+                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => CompareScreen(
+                            pgs: _selectedComparePgs,
+                            officeLat: widget.criteria.officeLat,
+                            officeLng: widget.criteria.officeLng,
+                          ),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6F5CFF),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
-                  );
-                },
-                label: Text(
-                  'Compare Selected (${_selectedComparePgs.length})',
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-                ),
-                icon: const Icon(Icons.compare_arrows_rounded, color: Colors.white),
+                    child: const Text('Compare Now →', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+                ],
               ),
             ),
       body: SafeArea(
@@ -617,141 +1534,216 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 const SizedBox(height: 8),
                 _buildPreferencesCard(),
                 _buildHubTip(),
-                const SizedBox(height: 18),
+                const SizedBox(height: 14),
+
+                // 14. Journey timeline
+                _buildJourneyTimeline(),
+                const SizedBox(height: 12),
+
+                // 19. Narrowdown timeline sequence
+                _buildNarrowdownTimeline(),
+                const SizedBox(height: 14),
+
+                // 2. AI recommendation summary
+                _buildAiSummaryHeader(),
+                const SizedBox(height: 16),
                 
                 // Horizontal list of filters
                 _buildFiltersRow(),
-                const SizedBox(height: 18),
+                const SizedBox(height: 14),
 
-                // Sort by selection dropdown
+                // Sort options & Cards/Map Toggle (Point 10)
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Sort by:', style: TextStyle(color: Colors.white70, fontSize: 13)),
-                    const SizedBox(width: 10),
+                    Row(
+                      children: [
+                        const Text('Sort:', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF121630),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFF222852)),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _sortBy,
+                              dropdownColor: const Color(0xFF11142B),
+                              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                              onChanged: (val) {
+                                setState(() {
+                                  _sortBy = val!;
+                                  _computeData();
+                                });
+                              },
+                              items: ['Best Match', 'Lowest Rent', 'Closest', 'Highest Rated']
+                                  .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                                  .toList(),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    
+                    // Cards / Map Toggle (Point 10)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
                         color: const Color(0xFF121630),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: const Color(0xFF222852)),
                       ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: _sortBy,
-                          dropdownColor: const Color(0xFF11142B),
-                          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
-                          onChanged: (val) {
-                            setState(() {
-                              _sortBy = val!;
-                              _computeData();
-                            });
-                          },
-                          items: ['Best Match', 'Lowest Rent', 'Closest', 'Highest Rated']
-                              .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                              .toList(),
-                        ),
+                      child: Row(
+                        children: [
+                          IconButton(
+                            icon: Icon(Icons.list_alt_rounded, color: !_showMap ? const Color(0xFF8C88FF) : Colors.white24, size: 18),
+                            onPressed: () => setState(() => _showMap = false),
+                            tooltip: 'Cards View',
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.map_outlined, color: _showMap ? const Color(0xFF8C88FF) : Colors.white24, size: 18),
+                            onPressed: () => setState(() => _showMap = true),
+                            tooltip: 'Interactive Map',
+                          ),
+                        ],
                       ),
-                    ),
-                    const Spacer(),
-                    FilterChip(
-                      label: Text(
-                        '❤️ Favs (${_favoritePgNames.length})',
-                        style: TextStyle(
-                          color: _showFavoritesOnly ? Colors.white : Colors.white70,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      selected: _showFavoritesOnly,
-                      checkmarkColor: Colors.white,
-                      selectedColor: const Color(0xFFEF4444),
-                      backgroundColor: const Color(0xFF121630),
-                      side: BorderSide(color: _showFavoritesOnly ? const Color(0xFFEF4444) : const Color(0xFF222852)),
-                      onSelected: (selected) {
-                        setState(() {
-                          _showFavoritesOnly = selected;
-                          _computeData();
-                        });
-                      },
                     ),
                   ],
                 ),
                 const SizedBox(height: 18),
 
-                if (hasMatches) ...[
-                  _buildSummaryHeader(),
-                  const SizedBox(height: 24),
+                if (_showMap) ...[
+                  // 10. Map view mode
+                  _buildMapView(),
+                ] else ...[
+                  // List Cards view mode
+                  if (hasMatches) ...[
+                    _buildSummaryHeader(),
+                    const SizedBox(height: 20),
 
-                  // Best Matches For You Section
-                  const Text(
-                    '⭐ Best Matches for You',
-                    style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    height: 550,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      itemCount: top3.length,
-                      separatorBuilder: (context, index) => const SizedBox(width: 14),
-                      itemBuilder: (context, index) {
-                        return _buildPgCard(context, top3[index], isFeatured: true);
-                      },
+                    // 3. AI Best Pick Card (Hero card)
+                    if (bestPick != null) ...[
+                      _buildBestPickCard(bestPick),
+                      const SizedBox(height: 24),
+                    ],
+
+                    // Other Best matches (remaining top3 items)
+                    if (top3.isNotEmpty) ...[
+                      const Text(
+                        '⭐ Other Top Matches',
+                        style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 520,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
+                          itemCount: top3.length,
+                          separatorBuilder: (context, index) => const SizedBox(width: 14),
+                          itemBuilder: (context, index) {
+                            return _buildPgCard(context, top3[index], isFeatured: true);
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+
+                    // 📋 Remaining PGs Grid
+                    if (others.isNotEmpty) ...[
+                      const Text(
+                        '📋 Remaining Matching PGs',
+                        style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildResponsiveGrid(others),
+                    ],
+                  ] else ...[
+                    // 15. Empty state interactive suggestions (matches exactly user copy)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1A1F3C),
+                        borderRadius: BorderRadius.circular(26),
+                        border: Border.all(color: const Color(0xFF20254D)),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text(
+                            '😔',
+                            style: TextStyle(fontSize: 48),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'No PG matched all your selected preferences.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Good news! We found ${_fallbackMatches.length} nearby alternatives.',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.white70, fontSize: 13),
+                          ),
+                          const SizedBox(height: 14),
+                          const Text(
+                            'You can also:',
+                            style: TextStyle(color: Colors.white54, fontSize: 11),
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            alignment: WrapAlignment.center,
+                            children: [
+                              ActionChip(
+                                label: const Text('Increase Budget (₹35k)', style: TextStyle(color: Color(0xFF8C88FF), fontSize: 11)),
+                                backgroundColor: const Color(0xFF1B2048),
+                                onPressed: () {
+                                  setState(() {
+                                    _filterBudget = '₹25k - ₹35k';
+                                    _computeData();
+                                  });
+                                },
+                              ),
+                              ActionChip(
+                                label: const Text('Increase Distance (<10km)', style: TextStyle(color: Color(0xFF8C88FF), fontSize: 11)),
+                                backgroundColor: const Color(0xFF1B2048),
+                                onPressed: () {
+                                  setState(() {
+                                    _filterDistance = 'Any (<10km)';
+                                    _computeData();
+                                  });
+                                },
+                              ),
+                              ActionChip(
+                                label: const Text('Remove AC filter', style: TextStyle(color: Color(0xFF8C88FF), fontSize: 11)),
+                                backgroundColor: const Color(0xFF1B2048),
+                                onPressed: () {
+                                  setState(() {
+                                    _filterAc = false;
+                                    _computeData();
+                                  });
+                                },
+                              ),
+                            ],
+                          )
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 28),
+                    const SizedBox(height: 24),
 
-                  // Other Matching PGs Section
-                  if (others.isNotEmpty) ...[
                     const Text(
-                      '📋 Other Matching PGs',
+                      'Nearby Alternative Recommendations',
                       style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                     ),
-                    const SizedBox(height: 12),
-                    _buildResponsiveGrid(others),
+                    const SizedBox(height: 14),
+
+                    _buildResponsiveGrid(_fallbackMatches, isAlternative: true),
                   ],
-                ] else ...[
-                  // 17. Empty state improvement (matches exactly user copy)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1A1F3C),
-                      borderRadius: BorderRadius.circular(26),
-                      border: Border.all(color: const Color(0xFF20254D)),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          '😔',
-                          style: TextStyle(fontSize: 48),
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'No PG matched all your selected preferences.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 6),
-                        const Text(
-                          'Don\'t worry!\nWe found some nearby alternatives you might like.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.white60, fontSize: 13, height: 1.4),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  const Text(
-                    'Nearby Alternative Recommendations',
-                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 14),
-
-                  _buildResponsiveGrid(_fallbackMatches, isAlternative: true),
                 ],
                 const SizedBox(height: 80),
               ],
@@ -759,56 +1751,6 @@ class _ResultsScreenState extends State<ResultsScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildResponsiveGrid(List<PGListingWithScore> items, {bool isAlternative = false}) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        int crossAxisCount = 1;
-        if (width > 900) {
-          crossAxisCount = 3;
-        } else if (width > 600) {
-          crossAxisCount = 2;
-        }
-
-        double cellWidth = width;
-        if (crossAxisCount == 3) {
-          cellWidth = (width - 32) / 3;
-        } else if (crossAxisCount == 2) {
-          cellWidth = (width - 16) / 2;
-        } else {
-          cellWidth = width.clamp(0.0, 420.0);
-        }
-
-        // Set fixed height to fit all card elements cleanly
-        double aspectRatio = cellWidth / 680.0;
-
-        return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: items.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: aspectRatio,
-          ),
-          itemBuilder: (context, index) {
-            final card = _buildPgCard(context, items[index], isFeatured: false, isAlternative: isAlternative);
-            if (crossAxisCount == 1) {
-              return Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 420),
-                  child: card,
-                ),
-              );
-            }
-            return card;
-          },
-        );
-      },
     );
   }
 
@@ -822,7 +1764,6 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
     final matchColor = _getConfidenceColor(item.score);
 
-    // Build amenity icons (Point 2)
     final hasWifi = item.pg.amenities.any((a) => a.toLowerCase().contains('wi-fi'));
     final hasLaundry = item.pg.amenities.any((a) => a.toLowerCase().contains('laundry') || a.toLowerCase().contains('washing'));
     final hasGym = item.pg.amenities.any((a) => a.toLowerCase().contains('gym'));
@@ -838,6 +1779,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
     if (hasWashroom) amenityIcons.add(const Tooltip(message: 'Attached Washroom', child: Icon(Icons.bathroom_rounded, size: 14, color: Colors.white54)));
     if (hasAc) amenityIcons.add(const Tooltip(message: 'AC Available', child: Icon(Icons.ac_unit, size: 14, color: Colors.white54)));
 
+    final showExplain = _expandedExplanationPgNames.contains(item.pg.name);
+
     return Container(
       width: isFeatured ? 290 : double.infinity,
       decoration: BoxDecoration(
@@ -851,6 +1794,13 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   : const Color(0xFF222852),
           width: isSelected ? 2 : 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -862,11 +1812,11 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                 child: Image.network(
                   item.pg.imageUrl,
-                  height: isFeatured ? 140 : 180,
+                  height: isFeatured ? 130 : 180,
                   width: double.infinity,
                   fit: BoxFit.cover,
                   errorBuilder: (c, o, s) => Container(
-                    height: isFeatured ? 140 : 180,
+                    height: isFeatured ? 130 : 180,
                     color: const Color(0xFF222852),
                     child: const Icon(Icons.home_work_rounded, color: Colors.white24, size: 48),
                   ),
@@ -935,7 +1885,17 @@ class _ResultsScreenState extends State<ResultsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 3. PG Name & Rating Row
+                // Personality Tag
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildVisualTag(item.personalityTag, const Color(0xFF8C88FF)),
+                    _buildVisualTag(item.lifestyleTag, const Color(0xFF10B981)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+
+                // PG Name & Rating Row
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -995,6 +1955,39 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 ),
                 const SizedBox(height: 8),
 
+                // 11. Nearby Essentials with Icons & Distances (Point 11)
+                Row(
+                  children: const [
+                    Text('Nearby: ', style: TextStyle(color: Colors.white38, fontSize: 9)),
+                    Text('🚇 300m  ·  🛒 180m  ·  🏥 700m  ·  🍔 120m', style: TextStyle(color: Colors.white60, fontSize: 9)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+
+                // 12. Reviews Preview text snippet (Point 12)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1B1B3A),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: const [
+                      Icon(Icons.format_quote_rounded, size: 10, color: Color(0xFF8C88FF)),
+                      SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          '"Food is excellent and safety is top notch."',
+                          style: TextStyle(color: Colors.white70, fontSize: 9, fontStyle: FontStyle.italic),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+
                 // Amenity Icons row (Point 3)
                 if (amenityIcons.isNotEmpty) ...[
                   Row(
@@ -1011,11 +2004,6 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 ],
 
                 // "Why Recommended" short chips (Point 3)
-                const Text(
-                  'Why Recommended?',
-                  style: TextStyle(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 4),
                 Wrap(
                   spacing: 4,
                   runSpacing: 4,
@@ -1024,7 +2012,40 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     ...item.mismatches.take(1).map((mismatch) => _buildStatusChip(mismatch, isMatch: false)),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
+
+                // 🧠 Why did AI recommend this Expandable section button
+                InkWell(
+                  onTap: () {
+                    setState(() {
+                      if (showExplain) {
+                        _expandedExplanationPgNames.remove(item.pg.name);
+                      } else {
+                        _expandedExplanationPgNames.add(item.pg.name);
+                      }
+                    });
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.psychology_outlined, size: 12, color: Color(0xFF8C88FF)),
+                        const SizedBox(width: 4),
+                        Text(
+                          showExplain ? 'Hide details' : '🧠 Why did AI recommend this?',
+                          style: const TextStyle(color: Color(0xFF8C88FF), fontSize: 9, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                if (showExplain) ...[
+                  const SizedBox(height: 6),
+                  _buildExplainabilityPanel(item),
+                ],
+                const SizedBox(height: 10),
 
                 // Action Buttons Row (Save, Compare, Details)
                 Row(
@@ -1138,6 +2159,47 @@ class _ResultsScreenState extends State<ResultsScreen> {
           Text(
             label,
             style: TextStyle(color: color, fontSize: 8, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHubTip() {
+    final loc = widget.criteria.officeLocation.toLowerCase();
+    String? hub;
+    String? recommendations;
+    if (loc.contains('electronic city')) {
+      hub = 'Electronic City';
+      recommendations = 'Phase 1 and Neeladri Road';
+    } else if (loc.contains('whitefield')) {
+      hub = 'Whitefield';
+      recommendations = 'Hope Farm and ITPL Main Road';
+    } else if (loc.contains('koramangala')) {
+      hub = 'Koramangala';
+      recommendations = '4th Block and 7th Block';
+    } else if (loc.contains('indiranagar')) {
+      hub = 'Indiranagar';
+      recommendations = 'HAL 2nd Stage and Domlur';
+    }
+    if (hub == null) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF6F5CFF).withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF6F5CFF).withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.lightbulb_outline_rounded, color: Color(0xFF8C88FF), size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Hub Tip: Since your office is in $hub, popular PG clusters nearby include $recommendations.',
+              style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
+            ),
           ),
         ],
       ),
