@@ -3,43 +3,69 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  // 1. Apple-Inspired Dark Color Palette
-  static const Color primaryBackground = Color(0xFF070913); // Midnight Navy/Black
-  static const Color secondaryBackground = Color(0xFF0E1327); // Dark Indigo Surface
-  static const Color cardBackground = Color(0xFF141933); // Glass panel backing
-  static const Color elevatedCardBackground = Color(0xFF1B2245);
+  static const Color pageBackground = Color(0xFF080B14);
+  static const Color deepNavy = Color(0xFF111827);
+  static const Color indigoGlow = Color(0xFF1E1B4B);
+  static const Color darkPurple = Color(0xFF2A1E5C);
+
+  static const Color primaryBackground = pageBackground;
+  static const Color secondaryBackground = deepNavy;
+  static const Color cardBackground = Color(0xFF171C2D);
+  static const Color elevatedCardBackground = Color(0xFF202746);
+
+  static const Color surfaceLevel1 = pageBackground;
+  static const Color surfaceLevel2 = Color(0xFF171C2D);
+  static const Color surfaceLevel3 = Color(0xFF202746);
 
   static Color borderTranslucent = Colors.white.withValues(alpha: 0.08);
-  static const Color borderFocused = Color(0xFF6366F1);
+  static const Color borderFocused = Color(0xFF7C5CFF);
 
-  static const Color textPrimary = Colors.white;
-  static const Color textSecondary = Color(0xFF94A3B8); // Slate 400
-  static const Color textMuted = Color(0xFF64748B); // Slate 500
+  static const Color textPrimary = Color(0xFFF7F8FF);
+  static const Color textSecondary = Color(0xFFD8E0F3);
+  static const Color textMuted = Color(0xFF8A93A8);
 
-  // Accent Colors
-  static const Color accentColor = Color(0xFF6366F1); // Apple Indigo
-  static const Color accentColorLight = Color(0xFF0EA5E9); // Apple Soft Cyan
+  static const Color accentColor = Color(0xFF7C5CFF);
+  static const Color accentColorLight = Color(0xFF38BDF8);
+  static const Color successColor = Color(0xFF34D399);
+  static const Color warningColor = Color(0xFFFBBF24);
+  static const Color errorColor = Color(0xFFFB7185);
 
-  // Gradients
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [accentColor, Color(0xFF8B5CF6)],
+    colors: [accentColor, Color(0xFFA78BFA)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const LinearGradient secondaryGradient = LinearGradient(
+    colors: [accentColorLight, Color(0xFF60A5FA)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient glassGradient = LinearGradient(
     colors: [
-      Color(0x1AFFFFFF), // white 10%
-      Color(0x05FFFFFF), // white 2%
+      Color(0x1AFFFFFF),
+      Color(0x0DFFFFFF),
     ],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
-  // Soft shadows
+  static const LinearGradient ambientGlowGradient = LinearGradient(
+    colors: [Color(0x4D7C5CFF), Color(0x4D38BDF8)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
   static List<BoxShadow> get cardShadow => [
         BoxShadow(
-          color: Colors.black.withValues(alpha: 0.25),
+          color: Colors.black.withValues(alpha: 0.34),
+          blurRadius: 26,
+          spreadRadius: -3,
+          offset: const Offset(0, 16),
+        ),
+        BoxShadow(
+          color: accentColor.withValues(alpha: 0.12),
           blurRadius: 24,
           offset: const Offset(0, 12),
         ),
@@ -47,21 +73,29 @@ class AppTheme {
 
   static List<BoxShadow> get glowShadow => [
         BoxShadow(
-          color: accentColor.withValues(alpha: 0.15),
-          blurRadius: 24,
+          color: accentColor.withValues(alpha: 0.2),
+          blurRadius: 28,
           spreadRadius: 1,
+          offset: const Offset(0, 12),
         ),
       ];
 
-  // Softer Corner Radii (Apple standards)
+  static List<BoxShadow> get hoverShadow => [
+        BoxShadow(
+          color: accentColorLight.withValues(alpha: 0.16),
+          blurRadius: 30,
+          spreadRadius: 1,
+          offset: const Offset(0, 18),
+        ),
+      ];
+
   static double get cardRadius => 24.0;
-  static double get buttonRadius => 20.0;
+  static double get buttonRadius => 999.0;
   static double get searchRadius => 28.0;
   static double get imageRadius => 20.0;
-  static double get pillRadius => 30.0;
+  static double get pillRadius => 999.0;
 }
 
-// 2. ThemeBackground: Renders layered radial gradients and slow ambient glow blobs
 class ThemeBackground extends StatefulWidget {
   final Widget child;
   final bool showGlows;
@@ -98,23 +132,21 @@ class _ThemeBackgroundState extends State<ThemeBackground> with SingleTickerProv
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // Background Gradient (Gently Shifting Radial Center)
         Positioned.fill(
           child: AnimatedBuilder(
             animation: _controller,
             builder: (context, child) {
-              final double value = _controller.value;
-              final double dx = 0.15 * math.sin(value * 2 * math.pi);
-              final double dy = 0.15 * math.cos(value * 2 * math.pi);
               return Container(
                 decoration: BoxDecoration(
-                  gradient: RadialGradient(
-                    center: Alignment(-0.2 + dx, -0.3 + dy),
-                    radius: 1.6,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                     colors: const [
-                      Color(0xFF0E132B), // Dark Indigo depth
+                      Color(0xFF0C1222),
                       AppTheme.primaryBackground,
+                      AppTheme.deepNavy,
                     ],
+                    stops: const [0.0, 0.6, 1.0],
                   ),
                 ),
               );
@@ -122,24 +154,24 @@ class _ThemeBackgroundState extends State<ThemeBackground> with SingleTickerProv
           ),
         ),
 
-        // Floating Glow Blobs (Radial color layers)
         if (widget.showGlows)
           Positioned.fill(
             child: AnimatedBuilder(
               animation: _controller,
               builder: (context, child) {
                 final double value = _controller.value;
-                final double dx1 = 100 * math.sin(value * 2 * math.pi);
-                final double dy1 = 80 * math.cos(value * 2 * math.pi);
-                final double dx2 = 80 * math.sin((value + 0.5) * 2 * math.pi);
-                final double dy2 = 100 * math.cos((value + 0.5) * 2 * math.pi);
+                final double dx1 = 90 * math.sin(value * 2 * math.pi);
+                final double dy1 = 70 * math.cos(value * 2 * math.pi);
+                final double dx2 = 80 * math.sin((value + 0.35) * 2 * math.pi);
+                final double dy2 = 100 * math.cos((value + 0.35) * 2 * math.pi);
+                final double dx3 = 70 * math.sin((value + 0.7) * 2 * math.pi);
+                final double dy3 = 90 * math.cos((value + 0.7) * 2 * math.pi);
 
                 return Stack(
                   children: [
-                    // Blob 1: Purple Ambient Glow
                     Positioned(
                       top: 80 + dy1,
-                      left: -60 + dx1,
+                      left: -70 + dx1,
                       child: Container(
                         width: 320,
                         height: 320,
@@ -147,26 +179,41 @@ class _ThemeBackgroundState extends State<ThemeBackground> with SingleTickerProv
                           shape: BoxShape.circle,
                           gradient: RadialGradient(
                             colors: [
-                              const Color(0xFF8B5CF6).withValues(alpha: 0.15),
+                              AppTheme.accentColor.withValues(alpha: 0.18),
                               Colors.transparent,
                             ],
                           ),
                         ),
                       ),
                     ),
-
-                    // Blob 2: Cyan Ambient Glow
                     Positioned(
-                      bottom: 120 + dy2,
+                      bottom: 110 + dy2,
                       right: -60 + dx2,
                       child: Container(
-                        width: 350,
-                        height: 350,
+                        width: 360,
+                        height: 360,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           gradient: RadialGradient(
                             colors: [
-                              AppTheme.accentColorLight.withValues(alpha: 0.12),
+                              AppTheme.accentColorLight.withValues(alpha: 0.14),
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 150 + dy3,
+                      right: 40 + dx3,
+                      child: Container(
+                        width: 260,
+                        height: 260,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: RadialGradient(
+                            colors: [
+                              AppTheme.indigoGlow.withValues(alpha: 0.12),
                               Colors.transparent,
                             ],
                           ),
@@ -178,15 +225,12 @@ class _ThemeBackgroundState extends State<ThemeBackground> with SingleTickerProv
               },
             ),
           ),
-
-        // Content Layer
         Positioned.fill(child: widget.child),
       ],
     );
   }
 }
 
-// 3. GlassCard: Premium Apple Frosted Glass effect
 class GlassCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry? padding;
@@ -202,7 +246,7 @@ class GlassCard extends StatelessWidget {
     this.padding,
     this.margin,
     this.borderRadius,
-    this.blur = 20.0,
+    this.blur = 22.0,
     this.color,
     this.border,
   });
@@ -223,11 +267,12 @@ class GlassCard extends StatelessWidget {
           child: Container(
             padding: padding,
             decoration: BoxDecoration(
-              color: color ?? Colors.white.withValues(alpha: 0.04),
+              gradient: AppTheme.glassGradient,
+              color: color ?? AppTheme.cardBackground.withValues(alpha: 0.6),
               borderRadius: BorderRadius.circular(radius),
               border: Border.fromBorderSide(
                 border ?? BorderSide(
-                  color: Colors.white.withValues(alpha: 0.08),
+                  color: Colors.white.withValues(alpha: 0.12),
                   width: 1.0,
                 ),
               ),
@@ -240,7 +285,6 @@ class GlassCard extends StatelessWidget {
   }
 }
 
-// 4. SpringButton: Custom Apple Spring Physics button interaction
 class SpringButton extends StatefulWidget {
   final Widget child;
   final VoidCallback? onTap;
