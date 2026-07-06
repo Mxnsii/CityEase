@@ -15,7 +15,6 @@ import '../services/google_places_service.dart';
 import 'compare_screen.dart';
 import 'pg_details_screen.dart';
 import 'saved_pgs_screen.dart';
-import 'office_map_screen.dart';
 
 class ResultsScreen extends StatefulWidget {
   final SurveyCriteria criteria;
@@ -1493,35 +1492,14 @@ class _ResultsScreenState extends State<ResultsScreen> {
                               if (prediction.placeId == null) return;
                               final details = await _placesService.getPlaceDetails(prediction.placeId!);
                               if (details?.geometry?.location == null) return;
-                              
-                              final double targetLat = details!.geometry!.location!.lat!;
-                              final double targetLng = details.geometry!.location!.lng!;
-                              final String targetArea = prediction.structuredFormatting?.mainText ?? prediction.description ?? '';
-                              final String targetLocation = prediction.description ?? '';
-                              
-                              // 1. Close the search dialog first
+                              setState(() {
+                                _currentOfficeLat = details!.geometry!.location!.lat!;
+                                _currentOfficeLng = details.geometry!.location!.lng!;
+                                _currentOfficeArea = prediction.description ?? _currentOfficeArea;
+                                _currentOfficeLocation = prediction.description ?? _currentOfficeLocation;
+                              });
                               Navigator.of(context).pop();
-                              
-                              // 2. Open the OfficeMapScreen to pinpoint the location
-                              final selectedOffice = await Navigator.of(context).push<OfficeSelection?>(
-                                MaterialPageRoute(
-                                  builder: (_) => OfficeMapScreen(
-                                    area: targetArea,
-                                    placeName: targetLocation,
-                                    initialPosition: LatLng(targetLat, targetLng),
-                                  ),
-                                ),
-                              );
-                              
-                              if (selectedOffice != null && mounted) {
-                                setState(() {
-                                  _currentOfficeLat = selectedOffice.latitude;
-                                  _currentOfficeLng = selectedOffice.longitude;
-                                  _currentOfficeArea = targetArea;
-                                  _currentOfficeLocation = targetLocation;
-                                });
-                                _computeData(forceRefresh: true);
-                              }
+                              _computeData(forceRefresh: true);
                             },
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
@@ -1587,51 +1565,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
   }
 
 
-  Widget _buildLocationSearchBar() {
-    final selectedLabel = _currentOfficeLocation.trim().isNotEmpty ? _currentOfficeLocation : 'Search a new office area';
 
-    return Padding(
-      padding: const EdgeInsets.only(top: 6, bottom: 10),
-      child: InkWell(
-        onTap: () => _showAssistantPlaceSearch(context),
-        borderRadius: BorderRadius.circular(18),
-        child: Container(
-          height: 54,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.grey.shade300, width: 1.1),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.search_rounded, color: AppTheme.accentColorLight, size: 22),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  selectedLabel,
-                  style: TextStyle(
-                    color: selectedLabel == 'Search a new office area' ? Colors.grey.shade600 : Colors.grey.shade900,
-                    fontSize: 14,
-                    fontWeight: selectedLabel == 'Search a new office area' ? FontWeight.w400 : FontWeight.w600,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              Icon(Icons.location_on_outlined, color: Colors.grey.shade500, size: 20),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildPreferencesCard() {
     return SizedBox(
@@ -1988,8 +1922,6 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildLocationSearchBar(),
                       _buildPreferencesCard(),
                       const SizedBox(height: 10),
                       _buildHubTip(),
