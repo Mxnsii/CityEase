@@ -391,8 +391,6 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
     _flutterMarkers.add(
       flutter_map.Marker(
-        point: ll.LatLng(widget.criteria.officeLat, widget.criteria.officeLng),
-        point: ll.LatLng(_currentOfficeLat, _currentOfficeLng),
         point: ll.LatLng(_currentOfficeLat, _currentOfficeLng),
         width: 40,
         height: 40,
