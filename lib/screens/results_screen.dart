@@ -2073,7 +2073,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                             ),
                             const SizedBox(height: 12),
                             SizedBox(
-                              height: 360,
+                              height: 460,
                               child: ListView.separated(
                                 scrollDirection: Axis.horizontal,
                                 physics: const BouncingScrollPhysics(),
