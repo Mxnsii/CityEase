@@ -1116,8 +1116,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
           cellWidth = width.clamp(0.0, 420.0);
         }
 
-        // Cell height is 680 to fit everything cleanly
-        double aspectRatio = cellWidth / 680.0;
+        // Cell height is 490 to fit everything cleanly
+        double aspectRatio = cellWidth / 490.0;
 
         return GridView.builder(
           shrinkWrap: true,
